@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f7f6">
+  <link rel="icon" href="data:,">
+  <title>曙光智慧 · 系统架构导览</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f7f6;
+      --paper: #ffffff;
+      --paper-soft: #f0f5f4;
+      --paper-blue: #edf4fa;
+      --paper-warm: #fbf4e9;
+      --ink: #1c2a32;
+      --muted: #53646c;
+      --line: #d5dfdc;
+      --blue: #176a91;
+      --green: #28745f;
+      --warm: #96601a;
+      --red: #a44750;
+      --link: #075f88;
+      --shadow: 0 10px 30px rgb(31 54 52 / 7%);
+      --code: #eef2f1;
+      --focus: #b36e11;
+      --content: 1100px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #151d20;
+      --paper: #1d292d;
+      --paper-soft: #243438;
+      --paper-blue: #233541;
+      --paper-warm: #393126;
+      --ink: #e9f0ed;
+      --muted: #bdcbc6;
+      --line: #3d5052;
+      --blue: #8bc7e5;
+      --green: #8ed0b5;
+      --warm: #e7bd7c;
+      --red: #ef9ba1;
+      --link: #9bd8f3;
+      --shadow: 0 10px 30px rgb(0 0 0 / 20%);
+      --code: #28373a;
+      --focus: #f0c578;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.7 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      overflow-wrap: anywhere;
+    }
+    a { color: var(--link); text-underline-offset: .18em; }
+    a:hover { text-decoration-thickness: 2px; }
+    button, summary { font: inherit; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+    .skip-link { position: absolute; z-index: 50; top: .5rem; left: -10000px; padding: .65rem 1rem; background: var(--paper); }
+    .skip-link:focus { left: .5rem; }
+    .site-header {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .65rem max(1rem, calc((100vw - var(--content)) / 2));
+      border-bottom: 1px solid var(--line);
+      background: var(--page);
+    }
+    .brand { font-weight: 750; letter-spacing: .02em; }
+    .brand-mark { color: var(--green); }
+    .header-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .control-button {
+      min-height: 42px;
+      padding: .4rem .75rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .control-button:hover { border-color: var(--blue); }
+    .mobile-nav { display: none; }
+    .page-layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 2rem;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 1.6rem clamp(1rem, 3vw, 2.5rem) 4rem;
+    }
+    .side-nav { position: sticky; top: 5.5rem; align-self: start; max-height: calc(100vh - 6.3rem); overflow: auto; }
+    .side-nav h2 { margin: .2rem .55rem .6rem; color: var(--muted); font-size: .82rem; letter-spacing: .08em; }
+    .side-nav nav { display: grid; gap: .15rem; }
+    .side-nav a { padding: .42rem .6rem; border-left: 2px solid transparent; border-radius: 0 7px 7px 0; color: var(--muted); font-size: .92rem; text-decoration: none; }
+    .side-nav a:hover, .side-nav a.active { border-left-color: var(--blue); background: var(--paper); color: var(--ink); }
+    main { min-width: 0; max-width: var(--content); }
+    .hero {
+      padding: clamp(1.35rem, 4vw, 3rem);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--paper), var(--paper-blue));
+      box-shadow: var(--shadow);
+    }
+    .eyebrow { color: var(--green); font-size: .86rem; font-weight: 750; letter-spacing: .1em; }
+    h1 { max-width: 18ch; margin: .5rem 0 1rem; font-size: clamp(2.1rem, 5vw, 3.6rem); line-height: 1.4; letter-spacing: -.025em; }
+    .hero p { max-width: 76ch; color: var(--muted); }
+    .pills { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.2rem; }
+    .pill, .tag { padding: .22rem .68rem; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--muted); font-size: .88rem; }
+    .pill strong { color: var(--ink); }
+    section { margin-top: 2.7rem; scroll-margin-top: 5.5rem; }
+    .section-heading { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: .8rem; align-items: start; margin-bottom: 1.15rem; }
+    .section-number { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: 9px; background: var(--paper-blue); color: var(--blue); font-weight: 800; }
+    .section-heading h2 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.3; }
+    .section-heading p { margin: .35rem 0 0; color: var(--muted); }
+    h3 { margin: .1rem 0 .5rem; font-size: 1.16rem; line-height: 1.4; }
+    p { margin: .55rem 0; }
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: .3rem; }
+    .panel, .card, .diagram, .table-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--paper);
+    }
+    .panel { margin: 1rem 0; padding: 1.1rem 1.2rem; box-shadow: var(--shadow); }
+    .card { min-width: 0; padding: 1rem 1.05rem; }
+    .card p, .panel p { color: var(--muted); }
+    .grid { display: grid; gap: .85rem; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .muted { color: var(--muted); }
+    .blue { color: var(--blue); }
+    .green { color: var(--green); }
+    .warm { color: var(--warm); }
+    .red { color: var(--red); }
+    .small { color: var(--muted); font-size: .92rem; }
+    .callout { margin: 1rem 0; padding: .85rem 1rem; border-left: 4px solid var(--warm); border-radius: 0 9px 9px 0; background: var(--paper-warm); }
+    .callout.positive { border-left-color: var(--green); background: var(--paper-soft); }
+    figure { margin: 1.1rem 0; }
+    .diagram { padding: 1rem; box-shadow: var(--shadow); }
+    .diagram-heading { margin: 0 0 .85rem; }
+    .diagram-heading h3 { margin: 0; font-size: 1.12rem; }
+    .diagram-heading p { margin: .15rem 0 0; color: var(--muted); font-size: .92rem; }
+    .flow { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+    .flow-node {
+      min-width: 0;
+      padding: .8rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--paper-soft);
+    }
+    .flow-node strong { display: block; color: var(--ink); font-size: 1.06rem; line-height: 1.4; }
+    .flow-node span { display: block; margin-top: .18rem; color: var(--muted); }
+    .flow-node.blue-node { border-color: color-mix(in srgb, var(--blue) 40%, var(--line)); background: var(--paper-blue); }
+    .flow-node.warm-node { border-color: color-mix(in srgb, var(--warm) 45%, var(--line)); background: var(--paper-warm); }
+    .flow-node.green-node { border-color: color-mix(in srgb, var(--green) 40%, var(--line)); background: var(--paper-soft); }
+    .flow-arrow { display: grid; min-height: 2.5rem; place-content: center; color: var(--blue); font-size: 1.35rem; line-height: 1; }
+    .flow-group { padding: .9rem; border: 1px solid var(--line); border-radius: 13px; background: var(--paper-soft); }
+    .flow-group > h4 { margin: 0 0 .65rem; color: var(--blue); font-size: .91rem; letter-spacing: .06em; }
+    .flow-group.t2 > h4 { color: var(--green); }
+    .flow-group .flow-node { background: var(--paper); }
+    .flow-inline { grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr) 2rem minmax(0, 1fr) 2rem minmax(0, 1fr); align-items: stretch; }
+    .flow-inline > li { margin-top: 0; }
+    .flow-inline > .flow-arrow { font-size: 0; }
+    .flow-inline > .flow-arrow::after { content: "→"; font-size: 1.35rem; }
+    .port-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin-top: .8rem; }
+    .port-branch { display: grid; align-content: start; gap: .55rem; min-width: 0; }
+    .port-branch .flow-arrow { min-height: 1.8rem; }
+    .flow-notes { display: grid; gap: .6rem; margin: .8rem 0 0; padding-left: 1.4rem; color: var(--muted); }
+    .flow-notes strong { color: var(--ink); }
+    figcaption { margin-top: .65rem; color: var(--muted); font-size: .92rem; }
+    .boundary-box { padding: 1rem; border: 2px solid var(--warm); border-radius: 14px; background: var(--paper-warm); }
+    .boundary-title { margin: 0 0 .7rem; color: var(--warm); font-weight: 750; }
+    .subject-head { padding: .85rem 1rem; border: 1px solid var(--green); border-radius: 11px; background: var(--paper); }
+    .subject-head strong { display: block; font-size: 1.12rem; }
+    .subject-head span { color: var(--muted); }
+    .core-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; margin-top: .8rem; }
+    .core-chip { min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+    .core-chip strong { display: block; font-size: 1.02rem; }
+    .core-chip span { display: block; margin-top: .15rem; color: var(--muted); }
+    .phase { padding: 1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .phase-label { margin: 0 0 .2rem; color: var(--blue); font-size: .87rem; font-weight: 800; letter-spacing: .08em; }
+    .phase h3 { margin: 0 0 .55rem; }
+    .phase.t2 .phase-label { color: var(--green); }
+    .model-io { padding: 1rem; border: 1px solid var(--warm); border-radius: 13px; background: var(--paper-warm); text-align: center; }
+    .model-io strong { display: block; font-size: 1.08rem; }
+    .model-io span { color: var(--muted); }
+    .status { display: inline-block; padding: .2rem .65rem; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-soft); font-size: .86rem; font-weight: 700; }
+    .status.current::before { content: "● "; color: var(--green); }
+    .status.limit::before { content: "● "; color: var(--warm); }
+    .status.future::before { content: "○ "; color: var(--muted); }
+    table { width: 100%; border: 1px solid var(--line); border-collapse: separate; border-spacing: 0; border-radius: 11px; background: var(--paper); font-size: .96rem; }
+    th, td { padding: .65rem .75rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--paper-blue); color: var(--blue); font-weight: 750; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 650; }
+    .table-scroll { max-width: 100%; overflow-x: auto; border-radius: 11px; }
+    .table-scroll:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+    code { padding: .08rem .28rem; border: 1px solid var(--line); border-radius: 4px; background: var(--code); font-size: .88em; overflow-wrap: anywhere; }
+    pre { max-width: 100%; padding: .9rem; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--code); font-size: .9rem; }
+    details { margin: .85rem 0; padding: .75rem 1rem; border: 1px solid var(--line); border-radius: 11px; background: var(--paper); }
+    details > summary { cursor: pointer; color: var(--blue); font-weight: 750; }
+    details[open] > summary { margin-bottom: .75rem; }
+    .source-list { margin: .4rem 0; padding-left: 1.3rem; }
+    .source-list li { padding: .3rem 0; }
+    .tree-list { margin: .25rem 0; padding-left: 1.25rem; }
+    .tree-list ul { padding-left: 1.25rem; }
+    .footer { margin-top: 3rem; padding: 1.3rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
+    @media (max-width: 980px) {
+      .page-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+      .side-nav { display: none; }
+      .flow-inline { grid-template-columns: minmax(0, 1fr); }
+      .flow-inline > .flow-arrow::after { content: "↓"; }
+      .mobile-nav { position: relative; z-index: 15; top: 0; display: flex; gap: .45rem; overflow-x: auto; padding: .55rem .8rem; border-bottom: 1px solid var(--line); background: var(--page); }
+      .mobile-nav a { flex: 0 0 auto; padding: .28rem .65rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .88rem; text-decoration: none; }
+      .mobile-nav a.active { border-color: var(--blue); background: var(--paper-blue); color: var(--ink); }
+    }
+    @media (max-width: 680px) {
+      .site-header { padding: .55rem .75rem; }
+      .page-layout { padding: 1rem .8rem 3rem; }
+      .grid.two, .grid.three, .grid.six { grid-template-columns: minmax(0, 1fr); }
+      .core-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .port-grid { grid-template-columns: minmax(0, 1fr); }
+      .hero { padding: 1.25rem; border-radius: 15px; }
+      .header-actions { gap: .3rem; }
+      .control-button { padding: .35rem .55rem; }
+      .panel, .card, .diagram { padding: .85rem; }
+      .section-heading { grid-template-columns: 2.2rem minmax(0, 1fr); gap: .6rem; }
+      .section-number { width: 2.05rem; height: 2.05rem; }
+      table { min-width: 650px; }
+    }
+    @media (max-width: 360px) {
+      .brand { font-size: .92rem; }
+      .btn-word { display: none; }
+      .core-grid { grid-template-columns: minmax(0, 1fr); }
+      .hero { padding: 1rem; }
+      .flow-node, .phase { padding: .72rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+    @media print {
+      :root, :root[data-theme="dark"] {
+        color-scheme: light;
+        --page: #fff; --paper: #fff; --paper-soft: #f3f5f5; --paper-blue: #edf3f5; --paper-warm: #fbf4e9;
+        --ink: #17242a; --muted: #43545a; --line: #bac6c7; --blue: #145b7d; --green: #246c57; --warm: #865311; --link: #145b7d;
+        --shadow: none; --code: #f2f4f4;
+      }
+      body { background: #fff; font-size: 11pt; }
+      .site-header, .side-nav, .mobile-nav, .header-actions, .skip-link { display: none !important; }
+      .page-layout { display: block; padding: 0; }
+      .hero, .panel, .diagram, .card, .phase, .table-card { box-shadow: none; break-inside: avoid; }
+      section { margin-top: 1.4rem; }
+      details { break-inside: auto; }
+      details > summary { break-after: avoid; }
+      .flow-node, .flow-arrow, .model-io, .phase { break-inside: avoid; }
+      .diagram, figure { break-inside: auto; }
+      .table-scroll { overflow: visible; }
+      table { min-width: 0; font-size: 9pt; }
+      a { color: #145b7d; }
+      .flow-inline { grid-template-columns: minmax(0, 1fr); }
+      .flow-inline > .flow-arrow::after { content: "↓"; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="brand"><span class="brand-mark">☀</span> 曙光智慧 · 架构导览</div>
+    <div class="header-actions">
+      <button class="control-button" id="themeToggle" type="button" aria-label="切换浅色或深色主题" aria-pressed="false">◐ <span class="btn-word">主题</span></button>
+      <button class="control-button" id="printPage" type="button" aria-label="打印或导出为 PDF">▤ <span class="btn-word">打印</span></button>
+    </div>
+  </header>
+  <nav class="mobile-nav" aria-label="页面章节导航">
+    <a href="#overview">全景</a><a href="#cores">六核心</a><a href="#dialogue">交流</a><a href="#learning">学习</a><a href="#database">数据库</a><a href="#limits">边界</a><a href="#compat">兼容</a><a href="#sources">源码</a><a href="#roadmap">后续</a>
+  </nav>
+  <div class="page-layout">
+    <aside class="side-nav">
+      <h2>架构地图</h2>
+      <nav aria-label="页面章节导航">
+        <a href="#overview">01　运行全景</a><a href="#cores">02　同一主体 · 六核心</a><a href="#dialogue">03　交流事务 T1 / T2</a><a href="#learning">04　自主学习闭环</a><a href="#database">05　SQLite v2 / v3</a><a href="#limits">06　隐私、预算与时限</a><a href="#compat">07　版本与兼容</a><a href="#sources">08　源码与验证</a><a href="#roadmap">09　边界与候选</a>
+      </nav>
+    </aside>
+    <main id="main">
+      <header class="hero">
+        <div class="eyebrow">静态架构地图 · 应用版本 0.1.0</div>
+        <h1>一个持续主体，两条有界运行路径。</h1>
+        <p>曙光的 self、cognition、affect、memory、agency、growth 是同一个主体的职责划分，不是六个 Agent。普通交流经受鉴权的本机 HTTP；自主学习由前台 CLI 直达 runner。两条路径共享主体状态、SQLite 事务所有者和总调用预算，但不共享对外协议路径。模型是边界外的不可信资源，不拥有主体、数据库或授权。</p>
+        <div class="pills"><span class="pill"><strong>领域状态</strong> schema 2</span><span class="pill"><strong>交流库</strong> DSW2 / SQLite v2</span><span class="pill"><strong>学习库</strong> DSW2 / SQLite v3</span><span class="pill"><strong>运行</strong> 本机前台、无后台 daemon</span><span class="pill"><strong>页面</strong> 离线单文件</span></div>
+      </header>
+
+      <section id="overview" aria-labelledby="h-overview">
+        <div class="section-heading"><span class="section-number">01</span><div><h2 id="h-overview">运行全景：入口分离，主体与存储统一</h2><p>拆成三个视角：交流路径、学习路径、共享主体与模型信任边界。流程箭头只表示有向调用；具体事务、披露与返回语义在图下说明。</p></div></div>
+        <figure>
+          <div class="diagram">
+            <div class="diagram-heading"><h3>交流路径 · 经本机 HTTP</h3><p>CLI 与可选 Pi 窗口共用 dawn 客户端</p></div>
+            <ol class="flow flow-inline" aria-label="交流调用顺序">
+              <li class="flow-node"><strong>用户 CLI / 可选 Pi 窗口</strong><span>显式请求；Pi 只转发，不代答</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node blue-node"><strong>sharedHttp → loopback HTTP</strong><span>127.0.0.1 · Bearer · Host / Origin / bounds 校验</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node blue-node"><strong>SubjectService</strong><span>FIFO 交流编排；注入 ModelPort</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node green-node"><strong>SQLiteSubjectStore</strong><span>唯一事务所有者；快照、事件、attempts、meta</span></li>
+            </ol>
+          </div>
+          <ol class="flow-notes"><li><strong>协议边界：</strong>HTTP 只监听 loopback；交流服务没有后台自主循环。</li><li><strong>持久化边界：</strong>事务、预算、revision 与成功问答由统一 store 协调，不由模型写库。</li></ol>
+          <figcaption>交流入口关系；具体 T1 / 模型 I/O / T2 时序见第 03 节。</figcaption>
+        </figure>
+        <figure>
+          <div class="diagram">
+            <div class="diagram-heading"><h3>学习路径 · 前台 CLI 直达 runner</h3><p>不经过 HTTP；与交流使用同一主体库和总预算</p></div>
+            <ol class="flow flow-inline" aria-label="学习调用顺序">
+              <li class="flow-node"><strong>learning CLI</strong><span>显式授权、启动、停止或恢复</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node blue-node"><strong>前台 learning runner</strong><span>选择 / 接续目标，预算与状态机受限</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node warm-node"><strong>ModelPort 与模型 adapter</strong><span>study、assessment 各一次生成调用</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node green-node"><strong>同一 SQLiteSubjectStore · v3</strong><span>主体 revision、学习台账与总预算协调</span></li>
+            </ol>
+          </div>
+          <ol class="flow-notes"><li><strong>阶段事务：</strong>每阶段先向 store 提交预占，模型 I/O 在事务外完成；校验成功后再原子持久化结果。上图展示主要组件，不表示模型先调用再扣次。</li><li><strong>学习不等于后台：</strong>自主目标选择只发生于用户显式启动的前台 run 内。</li><li><strong>资料披露：</strong>若显式配置远端模型，学习阶段会发送相应教材、题干与允许的笔记；本地 pack 不代表本地推理。</li></ol>
+          <figcaption>学习不是第二人格或 HTTP 学习接口；允许范围、两阶段输入与异常恢复见第 04 节。</figcaption>
+        </figure>
+        <figure>
+          <div class="diagram">
+            <div class="diagram-heading"><h3>共享主体与模型信任边界</h3><p>主体规则、状态所有权与模型资源分属不同边界</p></div>
+            <div class="flow-group">
+              <h4>本地运行时 · 两类独立依赖</h4>
+              <div class="flow-node blue-node"><strong>SubjectService / learning runner</strong><span>交流与学习编排调用 port；模型和 SQLite 是不同依赖</span></div>
+              <div class="port-grid">
+                <div class="port-branch" aria-label="运行时到模型的调用路径">
+                  <div class="flow-arrow" aria-hidden="true">↓</div>
+                  <div class="flow-node blue-node"><strong>ModelPort → model adapter</strong><span>port contract；不让模型成为主体 owner</span></div>
+                  <div class="flow-arrow" aria-hidden="true">↓</div>
+                  <div class="boundary-box"><p class="boundary-title">信任边界之外</p><div class="model-io"><strong>外部模型 API</strong><span>接收有限输入；生成不可信 JSON</span></div></div>
+                  <div class="flow-arrow" aria-hidden="true">↓</div>
+                  <div class="flow-node warm-node"><strong>返回本地 · 校验 typed result</strong><span>模型只返回候选；本地校验后才可能进入事务</span></div>
+                </div>
+                <div class="port-branch" aria-label="运行时到主体存储的路径">
+                  <div class="flow-arrow" aria-hidden="true">↓</div>
+                  <div class="flow-node green-node"><strong>SQLiteSubjectStore</strong><span>交流事务所有者 · v3 同库学习接口</span></div>
+                  <div class="flow-arrow" aria-hidden="true">↓</div>
+                  <div class="subject-head"><strong>同一份 SubjectState · schema 2</strong><span>交流与学习共享快照、预算及持久化状态</span><div class="core-grid" aria-label="一个主体中的六个领域职责"><div class="core-chip"><strong>self</strong><span>身份与价值</span></div><div class="core-chip"><strong>cognition</strong><span>带来源的认识</span></div><div class="core-chip"><strong>affect</strong><span>工程情感状态</span></div><div class="core-chip"><strong>memory</strong><span>来源经历与召回</span></div><div class="core-chip"><strong>agency</strong><span>受限意图提议</span></div><div class="core-chip"><strong>growth</strong><span>变化候选</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ol class="flow-notes"><li><strong>核心内核：</strong><code>core/</code> 是无外部 I/O 的领域规则；主体状态由本地应用持有。</li><li><strong>Port 事实：</strong><code>ModelPort</code> 定义于 <code>adapters/models/port.ts</code>，runtime 对该契约作 type-import；不能据此声称整个 runtime 都不依赖 adapters。CLI / serve composition 装配 adapter。</li><li><strong>模型不可信：</strong>不持有主体或数据库，不拥有授权，不可提供任意 patch、权限或可信自评成长。</li></ol>
+          <figcaption>六个核心是同一主体的数据与规则分区，不是六个服务；运行时分别调用模型 port 和存储 port。模型只返回候选，SQLite 由本地 store 持有。</figcaption>
+        </figure>
+      </section>
+
+      <section id="cores" aria-labelledby="h-cores">
+        <div class="section-heading"><span class="section-number">02</span><div><h2 id="h-cores">同一主体的六核心：职责与真实 cycle 顺序</h2><p>六个模块属于同一个 SubjectState，均不代表独立 Agent 或服务。</p></div></div>
+        <div class="boundary-box">
+          <p class="boundary-title">一个 SubjectState · schema 2 · 一个主体</p>
+          <div class="grid six">
+            <article class="card"><h3>self · 持续身份</h3><p>身份、性格、values、concerns、兴趣与关系边界。初始化关切不是后天学成；模型投影排除私密认识 / 关系等字段。</p><p><a href="../packages/dawn/src/core/self/logic.ts">self/logic.ts</a> · <a href="../packages/dawn/src/core/self/types.ts">types.ts</a></p></article>
+            <article class="card"><h3>cognition · 认识</h3><p>带来源与状态的 tentative belief、被替代 / 撤回的历史及临时 workspace。不把自信当事实，也不存思维链。</p><p><a href="../packages/dawn/src/core/cognition/logic.ts">cognition/logic.ts</a></p></article>
+            <article class="card"><h3>affect · 工程情感</h3><p>从关切与证据评价更新有界情感轴，并按显式时间衰减；启发式状态不是主观感受或意识证据。</p><p><a href="../packages/dawn/src/core/affect/logic.ts">affect/logic.ts</a></p></article>
+            <article class="card"><h3>memory · 来源经历</h3><p>经历形成 episode；同主体、scope 内确定性相关召回。内容有来源标签，不意味着已被证实。</p><p><a href="../packages/dawn/src/core/memory/logic.ts">memory/logic.ts</a></p></article>
+            <article class="card"><h3>agency · 受限选择</h3><p>从可信活动候选中选择 proposed 意图。提议不是权限；无工具执行、网络搜索或活动副作用。</p><p><a href="../packages/dawn/src/core/agency/logic.ts">agency/logic.ts</a></p></article>
+            <article class="card"><h3>growth · 候选变化</h3><p>有证据的小步性格 / 兴趣候选；只有独立可信评估才可能应用。真实交流模型路径不提供可信 eval。</p><p><a href="../packages/dawn/src/core/growth/logic.ts">growth/logic.ts</a></p></article>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>一次 <code>runSubjectCycle</code> 的实际顺序</h3>
+          <ol>
+            <li><strong>校验边界：</strong>完整状态 / revision / 时间 / scope / 去重 / awake / <code>authority.stopRequested</code>。stop 是 cycle 调用者策略，不读取 <code>learning_grant</code>。</li>
+            <li><strong>追加当前经历：</strong>先在分离副本中追加有来源经历并生成 episode memory。</li>
+            <li><strong>应用获准候选：</strong>只处理 typed belief、memory correction、growth candidate；没有任意 patch。</li>
+            <li><strong>可信评估（如有）：</strong>只可评估先前 cycle 已存在的候选；本轮新增长不能自提自批。</li>
+            <li><strong>评价 affect 与选择意图：</strong>校验活动证据，召回记忆、建立 workspace，再生成 proposed 意图。</li>
+            <li><strong>整体验证并产出：</strong>成功才返回新 revision / event / workspace；任意失败不修改输入状态。</li>
+          </ol>
+          <p>这是纯函数候选循环的全有或全无，不等同于数据库原子事务。持久化 CAS 与事务由 SQLite store 负责。affect 的 <strong>6 小时 half-life</strong> 是工程衰减启发式；只有新的 cycle 时间戳到来才计算更新，没有计时 daemon。学习 cycle 的 appraisal 为 null、candidate allowlist 为空、可信 growth evaluations 固定为空；本地评分不直接产生新情绪或成长应用。core cycle 的 awake / <code>authority.stopRequested</code> 校验由调用者提供；learning stop grant 不等同于 core stop policy。</p>
+          <p><a href="../packages/dawn/src/core/cycle.ts">cycle.ts</a> · <a href="../packages/dawn/src/core/affect/logic.ts">affect/logic.ts</a> · <a href="six-core.md">六核心详细契约</a></p>
+        </div>
+      </section>
+
+      <section id="dialogue" aria-labelledby="h-dialogue">
+        <div class="section-heading"><span class="section-number">03</span><div><h2 id="h-dialogue">交流事务：T1 先扣次，T2 再原子提交</h2><p>模型 I/O 在事务外。失败不退款、不自动重试；迟到结果须通过最新 attempt 与 revision 检查。</p></div></div>
+        <figure>
+          <div class="diagram">
+            <div class="diagram-heading"><h3>一次 say 请求的提交顺序</h3><p>事务之外完成模型往返；T1 与 T2 是两个独立事务</p></div>
+            <ol class="flow" aria-label="交流请求处理顺序">
+              <li class="flow-node"><strong>客户端发起请求</strong><span>CLI / 可选 Pi → 已鉴权 HTTP → FIFO SubjectService</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node green-node"><strong>读取快照并准备上下文</strong><span>只选有限自我投影、记忆与完整成功问答后缀</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="phase"><p class="phase-label">T1 · 预占事务</p><h3>BEGIN IMMEDIATE → 永久预占</h3><p>检查 awake、expectedRevision、requestId 去重；提交调用台账后才开始模型 I/O。</p></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="model-io"><strong>事务外模型 I/O · 一次请求</strong><span>最多 1024 output tokens · 完整严格 JSON：reply + appraisal（可为 null）+ candidates（可为 []）</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node blue-node"><strong>解析并进行领域预演</strong><span>不合格即失败；已预占费用不退，不写成功问答</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="phase t2"><p class="phase-label">T2 · 原子提交事务</p><h3>BEGIN IMMEDIATE → fence → 写入</h3><p>只接受最新 pending attempt；复查 awake 与 revision CAS，在锁内重跑用户 cycle → 助手 cycle。</p></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node green-node"><strong>同一事务提交结果</strong><span>snapshot + 两条 typed events + 成功问答 + usage + attempt</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node"><strong>T2 成功后回复客户端</strong><span>成功 say 增加两个 revision：user_statement 与 inference</span></li>
+            </ol>
+          </div>
+          <ol class="flow-notes"><li><strong>迟到结果：</strong>最新 attempt、awake 和 revision 检查失败时不提交旧结果。</li><li><strong>响应丢失：</strong>网络提交后客户端断线无法保证恰好一次送达；取消或响应丢失不等于服务端未提交，应先查状态而非自动重放。</li><li><strong>失败台账：</strong>失败 attempt 保留并计费，但不进入成功问答历史；pending 崩溃也不会自动补发。</li></ol>
+          <figcaption>事务提交成功与客户端收到响应是两个不同事件；共享主体数据库是最终状态事实来源。</figcaption>
+        </figure>
+        <div class="grid two"><article class="card"><h3>T1 · 不可退款预占</h3><p>在模型调用之前确认 awake 与 expectedRevision、requestId 未用；先提交调用台账。模型 I/O 不包在 SQLite 写事务中。</p></article><article class="card"><h3>T2 · revision fence</h3><p>锁内重查最新 pending、sequence、awake 与 revision，再运行两个 typed cycles。快照、两条事件、成功问答与 usage 同事务提交。</p></article></div>
+        <p><a href="subject-runtime.md">运行契约</a> · <a href="../packages/dawn/src/runtime/subject-service.ts">subject-service.ts</a> · <a href="../packages/dawn/src/runtime/deliberation.ts">deliberation.ts</a> · <a href="../packages/dawn/src/runtime/subject-store.ts">store port</a></p>
+      </section>
+
+      <section id="learning" aria-labelledby="h-learning">
+        <div class="section-heading"><span class="section-number">04</span><div><h2 id="h-learning">自主学习：一次授权，受限前台连续闭环</h2><p>自主的是被授权范围内的目标选择与推进，不是自行扩权或后台常驻。0.1.0 必须包含此能力。</p></div></div>
+        <p>资料从本地 pack 读取不等于本地推理：显式配置远端模型 endpoint 时，study 会发送教材与练习题干（不含测验题或私有答案键）；assessment 只会发送测验题干与已保存笔记，不含教材与私有答案键。后续普通交流也可能召回学习笔记并作为有限上下文再次发送。</p>
+        <figure>
+          <div class="diagram">
+            <div class="diagram-heading"><h3>主链 · 授权到下一未尝试目标</h3><p>学习直接调用前台 runner；每个目标分 study 与独立 assessment 两阶段</p></div>
+            <ol class="flow" aria-label="学习主流程">
+              <li class="flow-node warm-node"><strong>一次显式授权</strong><span>显式新建 v3 库；固化本地资料 pack 与永久子预算</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node"><strong>检查 active grant 与 pending</strong><span>learning CLI 启动前台 runner；不经过 HTTP</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node blue-node"><strong>选择或续接目标</strong><span>依据主体兴趣与学习进度；已完成 / 失败目标不重试</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="model-io"><strong>study · 一次模型调用</strong><span>输入：材料 + 练习题干；产出笔记与练习答案</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node green-node"><strong>保存 study 阶段</strong><span>reading / reflection / practice 共 3 个 core cycles</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="model-io"><strong>assessment · 一次模型调用</strong><span>输入：held-out 题干 + 已提交笔记；不含教材 / 私有答案键</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node green-node"><strong>本地精确评分并保存</strong><span>测验阶段 2 个 core cycles；评分不由模型自报</span></li>
+              <li class="flow-arrow" aria-hidden="true">↓</li>
+              <li class="flow-node blue-node"><strong>继续下一目标或完成</strong><span>study 已提交时续接 assessment；成功后 runner 继续选择</span></li>
+            </ol>
+          </div>
+          <ol class="flow-notes"><li><strong>一次目标的周期：</strong>study 产生 3 个 core cycles（reading / document、reflection / inference、practice grade / observation）；assessment 产生 2 个（测验开始 reflection、评分 observation）。</li><li><strong>预算预检：</strong>study 检查至少 2 次剩余调用额度及 5 个后续 cycle 容量；实际 study 阶段提交 3 cycles。study 与 assessment 各只预占 1 次生成调用。</li><li><strong>完成语义：</strong>每目标两阶段成功共 5 个 revision；practice 是 study 阶段练习，held-out assessment 才是独立测验。</li><li><strong>事件语义：</strong>每个完成学习阶段追加一条 <code>learning_completed</code> event，跨 3 或 2 个连续 revision；事件所在 revision 是该阶段最后一条，不是一 revision 一 event。</li></ol>
+          <figcaption>学习经历写回同一主体：教材为 <code>document</code>，模型笔记为 <code>inference</code>，本地评分为 <code>observation</code>。学习 cycle 的 appraisal 为 null、candidate allowlist 与可信 growth evaluations 固定为空；学习评分不会直接应用情绪或成长候选。</figcaption>
+        </figure>
+        <figure>
+          <div class="diagram">
+            <div class="diagram-heading"><h3>异常与恢复 · 三种不同语义</h3><p>失败、用户撤权和进程信号分别有独立结果，不使用长回线表示恢复</p></div>
+            <div class="port-grid">
+              <div class="port-branch">
+                <div class="flow-node warm-node"><strong>模型失败 / JSON 不合格</strong><span>当前 run 结束；不退款、不重试目标</span></div>
+                <div class="flow-arrow" aria-hidden="true">↓</div>
+                <div class="flow-node"><strong>记录 failed（尽力）</strong><span>持久更新失败时，收费 attempt 可能仍 pending</span></div>
+                <div class="flow-arrow" aria-hidden="true">↓</div>
+                <div class="flow-node blue-node"><strong>下一次显式 run</strong><span>可继续其他未尝试目标；失败目标不重试</span></div>
+              </div>
+              <div class="port-branch">
+                <div class="flow-node warm-node"><strong>learning-stop · 持久撤权</strong><span>拒绝迟到结果；不保证终止供应商在途请求</span></div>
+                <div class="flow-arrow" aria-hidden="true">↓</div>
+                <div class="flow-node"><strong>授权不可恢复</strong><span>没有 resume / 自动重新授权路径</span></div>
+              </div>
+              <div class="port-branch">
+                <div class="flow-node"><strong>SIGINT / SIGTERM</strong><span>只取消当前 run；已提交进度保留</span></div>
+                <div class="flow-arrow" aria-hidden="true">↓</div>
+                <div class="flow-node"><strong>pending 不自动接管</strong><span>不自动重发模型请求</span></div>
+                <div class="flow-arrow" aria-hidden="true">↓</div>
+                <div class="flow-node warm-node"><strong>需显式 recover 时</strong><span>先停旧 runner 与交流服务，再由用户执行恢复</span></div>
+              </div>
+            </div>
+          </div>
+          <ol class="flow-notes"><li><strong>recover 门槛：</strong>崩溃或 failLearning 持久更新失败留下 pending 时，必须先停掉该库所有旧 runner 与交流服务，再显式 recover；不自动夺取 pending。</li><li><strong>assessment 答错：</strong>合法但错误的答案不是模型调用错误；assessment 正常评分提交，runner 可在同一 run 中继续下一目标。</li></ol>
+          <figcaption><code>completed</code> 表示目标都结束尝试，不保证通过；只有 <code>allGoalsPassed:true</code> 表示此次每项目标测验均通过，也不代表通用掌握。</figcaption>
+        </figure>
+        <div class="callout positive">私有答案键不进入模型投影、主体经历或记忆；它与主体状态位于同一未加密 SQLite 文件的私有 pack 表中，并非物理 secret vault。学习笔记会在后续普通交流中按相关性再次披露。资料包在授权导入时固化，不会每轮从原路径读取。</div>
+        <p><a href="autonomous-learning.md">自主学习完整契约</a> · <a href="../packages/dawn/src/runtime/learning-runner.ts">learning-runner.ts</a> · <a href="../packages/dawn/src/runtime/learning-cli.ts">learning-cli.ts</a> · <a href="../packages/dawn/src/core/learning.ts">core/learning.ts</a></p>
+      </section>
+
+      <section id="database" aria-labelledby="h-database">
+        <div class="section-heading"><span class="section-number">05</span><div><h2 id="h-database">SQLite：v2 交流主体与 v3 学习主体</h2><p>同一 DSW2 主体库；v3 显式新建并扩展表集，不是对 v2 的原地迁移。</p></div></div>
+        <div class="grid two">
+          <article class="table-card panel"><h3>共享主体表 · v2 与 v3 都有</h3><div class="table-scroll" tabindex="0" role="region" aria-label="共享主体 SQLite 表"><table><thead><tr><th>表</th><th>职责</th></tr></thead><tbody>
+            <tr><td><code>subject</code></td><td>当前 revision + 完整六核心 snapshot JSON。memory records / 经历属于 snapshot，不是独立表。</td></tr>
+            <tr><td><code>bootstrap</code></td><td>不可变初始 snapshot；作为 typed events 回放起点，与最终 snapshot 比较。</td></tr>
+            <tr><td><code>events</code></td><td>revision 对应事件 JSON；交流每轮两条 cycle event。学习完成事件可以跨多个 revision，事件行使用最终 revision。</td></tr>
+            <tr><td><code>attempts</code></td><td>交流 requestId 去重、预占序号、用户输入、状态、回复和 usage；失败记录留在台账。</td></tr>
+            <tr><td><code>meta</code></td><td>主体固定总调用次数上限；v3 学习与交流共享该上限。</td></tr>
+          </tbody></table></div><p class="small">存储格式：DSW2 / SQLite user_version 2；v3 保留全部这些核心表。</p></article>
+          <article class="table-card panel"><h3>学习扩展表 · 仅 v3 新增</h3><div class="table-scroll" tabindex="0" role="region" aria-label="学习扩展 SQLite 表"><table><thead><tr><th>表</th><th>职责</th></tr></thead><tbody>
+            <tr><td><code>learning_pack</code></td><td>授权时复制并校验的不可变 pack JSON，含私有答案键；不逐次从原路径读取。</td></tr>
+            <tr><td><code>learning_grant</code></td><td>一次性学习子预算及 active / stopped 授权状态。completed / exhausted 由 attempts 与预算派生；stop 不提供重新授权路径。</td></tr>
+            <tr><td><code>learning_attempts</code></td><td>study / assessment 阶段尝试与提交结果（笔记 / 答案）；与主体事件、revision、预算联动。标准答案键仍只在 pack。</td></tr>
+          </tbody></table></div><p class="small">显式 <code>learning-init</code> 新建 DSW2 / user_version 3；没有自动 ALTER 或 v2 原地升级。</p></article>
+        </div>
+        <div class="panel"><h3>存储归属与回放边界</h3><ul>
+          <li><strong>单一所有者：</strong>普通交流与学习共用主体快照、SQLite 事务协调及总调用预算；v3 文件仍可由 <code>serve --subject-db</code> 提供交流，不需要 chat sidecar。</li>
+          <li><strong>memory 所在：</strong>memory 正文、经历和六核心数据属于 subject snapshot JSON，不存在独立 memory SQL 表。</li>
+          <li><strong>事件关系：</strong>学习完成事件可能跨多个连续 revision；图表/归属表示事务与回放关联，不代表额外 SQL 外键。</li>
+          <li><strong>v2 回放：</strong>同一 store 可复用经验证的 replay checkpoint，但逐项比较 bootstrap 与既有 event JSON 前缀；snapshot、attempt 台账及已完成 cycle 来源持续核验。前缀变更或重开则重放。</li>
+          <li><strong>v3 回放：</strong>每次读库从 bootstrap 完整重演事件，包含每条学习事件覆盖的多个连续 core cycle，并核验学习台账与最终状态；不复用 v2 前缀 checkpoint。</li>
+        </ul></div>
+        <p><a href="persistence.md">持久化说明（legacy v1）</a> · <a href="subject-runtime.md">DSW2 运行契约</a> · <a href="autonomous-learning.md">学习存储与恢复</a> · <a href="../packages/dawn/src/adapters/storage/sqlite-subject.ts">sqlite-subject.ts（schema / 事务 / 回放）</a></p>
+      </section>
+
+      <section id="limits" aria-labelledby="h-limits">
+        <div class="section-heading"><span class="section-number">06</span><div><h2 id="h-limits">隐私、预算、资源与时间边界</h2><p>以下为实现中 enforced 的限制；不代表加密、费用结算或任意输入都能成功。</p></div></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="实现限制与实际语义"><table><thead><tr><th>边界</th><th>实际限制 / 语义</th><th>含义</th></tr></thead><tbody>
+          <tr><td>HTTP wire</td><td>请求与响应 ≤ <strong>64 KiB</strong>；用户 message ≤ <strong>16,000 字符</strong>。请求体 UTF-8 严格校验；本机服务鉴权、Host 校验、拒绝 Origin。</td><td>字符数与网络字节数不同。令牌是本机控制权限，不是多人授权系统。</td></tr>
+          <tr><td>模型调用</td><td>默认 timeout <strong>8 秒</strong>，显式配置最大 <strong>30 秒</strong>；单次生成最多 <strong>1024 output tokens</strong>。</td><td>超时、坏 JSON、无效候选皆失败；不降级、不重试、不切换模型。</td></tr>
+          <tr><td>服务 / 客户端</td><td>say 服务端累计 deadline <strong>35 秒</strong>、客户端 <strong>40 秒</strong>；控制请求和上传为 <strong>10 秒</strong>。</td><td>deadline 含排队时间；取消不等于能即时中止同步 SQLite 操作。</td></tr>
+          <tr><td>学习 run</td><td>每次前台 runner 硬期限 <strong>10 分钟</strong>；每 study / assessment 各调用一次。</td><td>超时结束当前 run；无后台队列、重试策略或跨进程运行租约。</td></tr>
+          <tr><td>交流上下文</td><td>成功历史最多 <strong>8 对 / 24,000 字符</strong>；只取完整成功问答后缀。总模型消息内容严格 <strong>&lt; 40,000 字符</strong>。</td><td>不发送 Pi 会话历史，不发送完整主体状态；超限删旧 pair / 可选投影。</td></tr>
+          <tr><td>记忆与认识投影</td><td>相关记忆最多 <strong>6 条 / 8,000 字符</strong>；相关 belief 最多 <strong>8 条</strong>。</td><td>规则字符串匹配，不是向量检索；相关 / 有来源不等于真实。</td></tr>
+          <tr><td>永久预算</td><td>主体总 calls <strong>1–10,000</strong>；学习子预算 <strong>2–32</strong> 且 ≤ 总预算；单模型实例 <strong>maxCalls 1–10</strong>。</td><td>学习两目标通常四次生成。失败、取消、pending 均不退款；无自动重试。非货币 / token 结算账单。</td></tr>
+          <tr><td>SQLite 容量</td><td>snapshot ≤ <strong>2 MiB</strong>；经历、memory、processed cycle 等常规集合最多 <strong>1,000 项</strong>。</td><td>满容量明确失败；无自动遗忘、摘要、压缩或增长上限规避。</td></tr>
+          <tr><td>学习输入 / 预检</td><td>Pack ≤ <strong>64,000 bytes</strong>（不是 64 KiB）、最多 <strong>16 goals</strong>、每组问题最多 <strong>8</strong>；study 预检 2 次剩余调用额度及 <strong>5 个后续 cycle 容量</strong>（本阶段实际提交 3 cycle），assessment 预检 1 次额度及 <strong>2 个 cycle</strong>；每 goal 两阶段成功共写 <strong>5 revisions</strong>。</td><td>2 次额度是 study 开始时最低预算检查，不会一次双重预占；study 与 assessment 之间普通交流可能耗尽共享总预算。5 是跨本目标两个阶段的 episode / cycle 空间预检，并非 study 实际 cycle 数。教材是数据，不提供工具执行。</td></tr>
+          <tr><td>持久隐私</td><td>SQLite 文件不加密；答案键只由应用逻辑隔离，仍与主体状态位于同一未加密数据库中的 pack 表，不是物理 secret vault。失败输入在台账；无内置删除 / 抗篡改账本。</td><td>使用可信私有目录并停写后备份。远端供应方会收到实际提示中的教材、题干、笔记及之后可能召回的学习记忆；真实资料 / API 调用须另行授权。</td></tr>
+        </tbody></table></div>
+        <div class="callout"><strong>并发与审计：</strong>FIFO 仅限单个 SubjectService 实例；pending / CAS 不是跨进程租约，也不保证全局模型调用单飞。模型实例 maxCalls 是内存计数，重启可重置；数据库永久预算不重置。复制 / 恢复数据库会回退本地台账。交流 attempt 保存 model / usage，当前学习台账不记录逐次 modelId / token 用量。交流投影会包含主题相关 concerns，学习经历 / 笔记也可能在后续相关召回中再次披露。</div>
+        <div class="callout"><strong>预算与学习状态：</strong>额度按生成请求次数永久预占，不等于模型 token、货币扣款或防回滚计费。学习阶段内部 <code>learningStatus</code> 含完整 pack 与 attempts / results；CLI 的 <code>learning-status</code> 必须使用剔除教材、答案、笔记的 safe report。</div>
+        <p><a href="subject-runtime.md">交流上下文 / HTTP / timeout 边界</a> · <a href="autonomous-learning.md">学习调用与 pack 限制</a> · <a href="../packages/dawn/src/adapters/transport/http-server.ts">http-server.ts</a> · <a href="../packages/dawn/src/adapters/models/config.ts">models/config.ts</a></p>
+      </section>
+
+      <section id="compat" aria-labelledby="h-compat">
+        <div class="section-heading"><span class="section-number">07</span><div><h2 id="h-compat">版本契约、旧版兼容与明确不存在的组件</h2><p>应用、协议、core、SQLite 和 sidecar 各自版本独立；数字相同不代表相同格式。</p></div></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="版本与兼容关系"><table><thead><tr><th>层 / 契约</th><th>版本 / 格式</th><th>兼容行为</th></tr></thead><tbody>
+          <tr><td>应用 / workspace</td><td><strong>0.1.0</strong></td><td>产品版本，不是迁移版本、部署状态或模型质量认证。</td></tr>
+          <tr><td>HTTP 协议</td><td><strong>v1</strong></td><td>请求 / 响应 runtime schema 校验；服务端仍只限 loopback 与单 token。</td></tr>
+          <tr><td>core 领域 state</td><td><strong>schema 2</strong></td><td>六核心领域状态版本；不是 SQLite user_version。</td></tr>
+          <tr><td>新交流 SQLite</td><td><strong>DSW2 / user_version 2</strong></td><td>显式新建；统一 snapshot / bootstrap / events / attempts / meta。</td></tr>
+          <tr><td>学习 SQLite</td><td><strong>DSW2 / user_version 3</strong></td><td>显式 learning-init 创建；保留 v2 核心表并追加学习表；可经同一 serve 交流。</td></tr>
+          <tr><td>旧版主体</td><td><strong>legacy SQLite v1</strong></td><td>旧 init / status / wake / sleep / events、<code>--db</code> serve 保留；旧格式与新六核心模式分开。</td></tr>
+          <tr><td>旧对话 sidecar</td><td><strong>chat sidecar v1</strong></td><td>legacy <code>--db</code> 交流路径可选配；不能与新 <code>--subject-db</code> 混用，也不是 DSW2 学习表。</td></tr>
+        </tbody></table></div>
+        <div class="grid three"><article class="card"><h3>显式选择，不自动改造</h3><p>新旧库不自动探测迁移、升级、覆盖或重建。新建主体不宣称为旧主体无损延续；v2 不因学习功能自动 ALTER 成 v3。</p></article><article class="card"><h3>同一服务兼容 v3</h3><p>v3 是统一主体库扩展；既可用于学习，也可用原 <code>serve --subject-db</code> 交流，不需要第二人格或 HTTP 学习接口。</p></article><article class="card"><h3>没有这些基础设施</h3><p>无 Agent 微服务、向量数据库、工具执行器、后台学习 daemon、自动跨进程租约或模型自动拉起。</p></article></div>
+        <p><a href="../packages/dawn/src/runtime/cli.ts">CLI 命令分流</a> · <a href="../packages/dawn/src/runtime/serve.ts">serve 入口</a> · <a href="protocol.md">协议 v1 文档</a> · <a href="release-0.1.0.md">0.1.0 范围与验收</a></p>
+      </section>
+
+      <section id="sources" aria-labelledby="h-sources">
+        <div class="section-heading"><span class="section-number">08</span><div><h2 id="h-sources">源码地图、命令入口与验证成熟度</h2><p>本页是静态说明，不会启动服务、打开数据库、请求模型或探测健康状态。</p></div></div>
+        <div class="grid two">
+          <article class="panel"><h3>从入口沿数据流阅读</h3><ul class="source-list">
+            <li><strong>应用入口与 CLI 分流</strong><br><a href="../packages/dawn/src/main.ts">main.ts</a> → <a href="../packages/dawn/src/runtime/cli.ts">runtime/cli.ts</a> → <a href="../packages/dawn/src/runtime/subject-cli.ts">subject-cli.ts</a> / <a href="../packages/dawn/src/runtime/learning-cli.ts">learning-cli.ts</a></li>
+            <li><strong>交流入口 / 编排 / 投影</strong><br><a href="../packages/dawn/src/runtime/serve.ts">serve.ts</a> → <a href="../packages/dawn/src/adapters/transport/http-server.ts">http-server.ts</a> → <a href="../packages/dawn/src/runtime/subject-service.ts">subject-service.ts</a> → <a href="../packages/dawn/src/runtime/deliberation.ts">deliberation.ts</a></li>
+            <li><strong>学习入口 / 状态机</strong><br><a href="../packages/dawn/src/runtime/learning-runner.ts">learning-runner.ts</a> · <a href="../packages/dawn/src/runtime/learning-store.ts">learning-store.ts</a> · <a href="../packages/dawn/src/core/learning.ts">core/learning.ts</a></li>
+            <li><strong>核心与统一持久化</strong><br><a href="../packages/dawn/src/core/cycle.ts">core/cycle.ts</a> · <a href="../packages/dawn/src/adapters/storage/sqlite-subject.ts">sqlite-subject.ts</a> · <a href="../packages/pi-extension/src/index.ts">Pi extension（可选客户端）</a></li>
+          </ul></article>
+          <article class="panel"><h3>文档交叉核对</h3><ul class="source-list">
+            <li><a href="subject-runtime.md">subject-runtime.md</a> — say / T1-T2 / replay / privacy</li><li><a href="autonomous-learning.md">autonomous-learning.md</a> — 授权、投影、状态、stop / recover</li><li><a href="six-core.md">six-core.md</a> — 六核心及 cycle 规则</li><li><a href="verification.md">verification.md</a> — 合成、真实 API 与未验证范围</li><li><a href="../STATUS.md">STATUS.md</a> · <a href="../ARCHITECTURE.md">ARCHITECTURE.md</a> · <a href="../README.md">README.md</a></li>
+          </ul><p class="small">浏览器通过 <code>file://</code> 打开 HTML 时，源码链接通常直接显示文本或触发下载，依浏览器本地文件权限而定；这是预期行为，不是网页外部请求。</p></article>
+        </div>
+        <details>
+          <summary>展开完整源码与测试索引</summary>
+          <p class="small">下列链接对应源码、测试入口与模块目录；本页面本身不执行这些测试。</p>
+          <ul class="tree-list">
+            <li><strong>packages/dawn/src · 主体运行时、adapter、协议与 legacy</strong>
+              <ul>
+                <li><a href="../packages/dawn/src/main.ts">main.ts</a></li>
+                <li><strong>core/ · 无外部 I/O 的六核心与统一验证</strong>
+                  <ul>
+                    <li><a href="../packages/dawn/src/core/state.ts">state.ts</a> · <a href="../packages/dawn/src/core/cycle.ts">cycle.ts</a> · <a href="../packages/dawn/src/core/learning.ts">learning.ts</a></li>
+                    <li><a href="../packages/dawn/src/core/experience.ts">experience.ts</a> · <a href="../packages/dawn/src/core/evidence.ts">evidence.ts</a> · <a href="../packages/dawn/src/core/guards.ts">guards.ts</a> · <a href="../packages/dawn/src/core/validation.ts">validation.ts</a></li>
+                    <li>self/: <a href="../packages/dawn/src/core/self/types.ts">types.ts</a> · <a href="../packages/dawn/src/core/self/logic.ts">logic.ts</a></li>
+                    <li>cognition/: <a href="../packages/dawn/src/core/cognition/types.ts">types.ts</a> · <a href="../packages/dawn/src/core/cognition/logic.ts">logic.ts</a></li>
+                    <li>affect/: <a href="../packages/dawn/src/core/affect/types.ts">types.ts</a> · <a href="../packages/dawn/src/core/affect/logic.ts">logic.ts</a></li>
+                    <li>memory/: <a href="../packages/dawn/src/core/memory/types.ts">types.ts</a> · <a href="../packages/dawn/src/core/memory/logic.ts">logic.ts</a></li>
+                    <li>agency/: <a href="../packages/dawn/src/core/agency/types.ts">types.ts</a> · <a href="../packages/dawn/src/core/agency/logic.ts">logic.ts</a></li>
+                    <li>growth/: <a href="../packages/dawn/src/core/growth/types.ts">types.ts</a> · <a href="../packages/dawn/src/core/growth/logic.ts">logic.ts</a></li>
+                  </ul>
+                </li>
+                <li><strong>runtime/ · 入口、流程编排、repository ports</strong>
+                  <ul>
+                    <li><a href="../packages/dawn/src/runtime/cli.ts">cli.ts</a> · <a href="../packages/dawn/src/runtime/serve.ts">serve.ts</a> · <a href="../packages/dawn/src/runtime/service.ts">service.ts</a> · <a href="../packages/dawn/src/runtime/lifecycle.ts">lifecycle.ts</a> · <a href="../packages/dawn/src/runtime/lifecycle-transition.ts">lifecycle-transition.ts</a></li>
+                    <li><a href="../packages/dawn/src/runtime/subject-cli.ts">subject-cli.ts</a> · <a href="../packages/dawn/src/runtime/subject-service.ts">subject-service.ts</a> · <a href="../packages/dawn/src/runtime/subject-store.ts">subject-store.ts (port)</a></li>
+                    <li><a href="../packages/dawn/src/runtime/deliberation.ts">deliberation.ts</a> · <a href="../packages/dawn/src/runtime/deliberation-types.ts">deliberation-types.ts</a> · <a href="../packages/dawn/src/runtime/state-store.ts">state-store.ts</a> · <a href="../packages/dawn/src/runtime/chat-store.ts">chat-store.ts</a></li>
+                    <li><a href="../packages/dawn/src/runtime/learning-cli.ts">learning-cli.ts</a> · <a href="../packages/dawn/src/runtime/learning-runner.ts">learning-runner.ts</a> · <a href="../packages/dawn/src/runtime/learning-store.ts">learning-store.ts</a></li>
+                    <li><a href="../packages/dawn/src/runtime/request-cli.ts">request-cli.ts</a> · <a href="../packages/dawn/src/runtime/control-client.ts">control-client.ts</a> · <a href="../packages/dawn/src/runtime/version.ts">version.ts</a></li>
+                  </ul>
+                </li>
+                <li><strong>adapters/ · I/O 实现与 capability 边界</strong>
+                  <ul>
+                    <li>capabilities/: <a href="../packages/dawn/src/adapters/capabilities/port.ts">port.ts（元数据 / 接口；不是工具执行器）</a></li>
+                    <li>models/: <a href="../packages/dawn/src/adapters/models/port.ts">port.ts</a> · <a href="../packages/dawn/src/adapters/models/config.ts">config.ts</a> · <a href="../packages/dawn/src/adapters/models/openai-compatible.ts">openai-compatible.ts</a></li>
+                    <li>storage/: <a href="../packages/dawn/src/adapters/storage/sqlite-subject.ts">sqlite-subject.ts（DSW2 v2/v3）</a> · <a href="../packages/dawn/src/adapters/storage/sqlite.ts">sqlite.ts（legacy subject）</a> · <a href="../packages/dawn/src/adapters/storage/sqlite-chat.ts">sqlite-chat.ts（legacy chat sidecar）</a> · <a href="../packages/dawn/src/adapters/storage/in-memory.ts">in-memory.ts</a></li>
+                    <li>transport/: <a href="../packages/dawn/src/adapters/transport/http-client.ts">http-client.ts</a> · <a href="../packages/dawn/src/adapters/transport/http-server.ts">http-server.ts</a> · <a href="../packages/dawn/src/adapters/transport/token-file.ts">token-file.ts</a></li>
+                  </ul>
+                </li>
+                <li><strong>protocol/ · 协议契约</strong> <a href="../packages/dawn/src/protocol/index.ts">protocol/index.ts</a></li>
+                <li><strong>legacy/ · 显式隔离的旧主体类型 / 校验</strong>
+                  <ul>
+                    <li><a href="../packages/dawn/src/legacy/state.ts">state.ts</a> · <a href="../packages/dawn/src/legacy/validation.ts">validation.ts</a></li>
+                    <li><a href="../packages/dawn/src/legacy/affect-types.ts">affect-types.ts</a> · <a href="../packages/dawn/src/legacy/agency-types.ts">agency-types.ts</a> · <a href="../packages/dawn/src/legacy/growth-types.ts">growth-types.ts</a></li>
+                    <li><a href="../packages/dawn/src/legacy/memory-types.ts">memory-types.ts</a> · <a href="../packages/dawn/src/legacy/self-types.ts">self-types.ts</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>packages/pi-extension/src · 可选 UI / 薄客户端，不是主体 owner</strong>
+              <ul><li><a href="../packages/pi-extension/src/index.ts">index.ts</a> · <a href="../packages/pi-extension/src/client.ts">client.ts</a> · <a href="../packages/pi-extension/src/http-transport.ts">http-transport.ts</a></li></ul>
+            </li>
+            <li><strong>测试目录 · 合成行为覆盖（本页未执行）</strong>
+              <ul>
+                <li><a href="../packages/dawn/tests/core-cycle.test.ts">core-cycle.test.ts</a> · <a href="../packages/dawn/tests/core-affect-agency.test.ts">core-affect-agency.test.ts</a> · <a href="../packages/dawn/tests/core-cognition-memory.test.ts">core-cognition-memory.test.ts</a> · <a href="../packages/dawn/tests/core-self-growth.test.ts">core-self-growth.test.ts</a> · <a href="../packages/dawn/tests/core-evidence.test.ts">core-evidence.test.ts</a></li>
+                <li><a href="../packages/dawn/tests/learning-core.test.ts">learning-core.test.ts</a> · <a href="../packages/dawn/tests/learning-runner.test.ts">learning-runner.test.ts</a> · <a href="../packages/dawn/tests/learning-storage.test.ts">learning-storage.test.ts</a> · <a href="../packages/dawn/tests/learning-cli.test.ts">learning-cli.test.ts</a></li>
+                <li><a href="../packages/dawn/tests/subject-service.test.ts">subject-service.test.ts</a> · <a href="../packages/dawn/tests/subject-store.test.ts">subject-store.test.ts</a> · <a href="../packages/dawn/tests/subject-integration.test.ts">subject-integration.test.ts</a> · <a href="../packages/dawn/tests/subject-recovery.test.ts">subject-recovery.test.ts</a></li>
+                <li><a href="../packages/dawn/tests/service.test.ts">service.test.ts (legacy)</a> · <a href="../packages/dawn/tests/sqlite.test.ts">sqlite.test.ts (legacy)</a> · <a href="../packages/dawn/tests/chat-store.test.ts">chat-store.test.ts</a> · <a href="../packages/dawn/tests/chat-recovery.test.ts">chat-recovery.test.ts</a></li>
+                <li><a href="../packages/dawn/tests/http-server.test.ts">http-server.test.ts</a> · <a href="../packages/dawn/tests/model.test.ts">model.test.ts</a> · <a href="../packages/dawn/tests/protocol.test.ts">protocol.test.ts</a> · <a href="../packages/pi-extension/tests/extension.test.ts">extension.test.ts</a></li>
+              </ul>
+            </li>
+          </ul>
+        </details>
+        <h3>命令目录（仅说明，本页不执行）</h3>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="CLI 命令与保护"><table><thead><tr><th>操作</th><th>入口 / 效果</th><th>关键保护</th></tr></thead><tbody>
+          <tr><td><code>subject-init</code></td><td>显式创建 DSW2 v2 六核心主体；固定总 calls。</td><td>绝对路径、父目录已存在、排他新建；不覆盖、不迁移。</td></tr>
+          <tr><td><code>serve --subject-db</code></td><td>前台启动 HTTP 控制服务；可按需显式配置模型。</td><td>回环绑定、凭据文件、无自动 wake / daemon / Pi 拉起。</td></tr>
+          <tr><td><code>request … say</code></td><td>独立 CLI 发起显式交流；Pi 可复用同一 dawn HTTP client。</td><td>失败不退款、不自动重试；响应丢失先查状态。</td></tr>
+          <tr><td><code>learning-init</code></td><td>新建 DSW2 v3 主体及固化本地 pack / 子预算。</td><td>不是在 v2 上升级；需要用户显式授权。</td></tr>
+          <tr><td><code>learning-run</code></td><td>前台自动选择 / 接续目标，循环 study → assessment。</td><td>远端模型接收当前阶段投影；每阶段一次生成调用；10 分钟期限；无工具。</td></tr>
+          <tr><td><code>learning-status / stop / recover</code></td><td>status CLI 经 safe report 返回摘要；stop 持久撤权；recover 显式结束 pending。</td><td>repository status 含完整 pack / attempts / 结果，不能当安全 CLI 投影；stop 不改 subject revision / lifecycle 且不禁交流（pending 仍阻塞 chat）；recover 将同库学习与交流 pending 标记 failed，不撤销 stopped grant。recover 前必须确认旧 runner 和交流服务都停。</td></tr>
+          <tr><td><code>--check / check:capabilities</code></td><td>静态能力元数据；serve runtime 的 <code>autonomy:false</code> 仅表示无后台 daemon。</td><td>不会打开 DB、启动监听或验证实际 API 健康；不否认 CLI 的前台 autonomous learning available。</td></tr>
+        </tbody></table></div>
+        <div class="grid three" style="margin-top:.9rem"><article class="card"><span class="status current">离线基线（STATUS / verification 历史）</span><h3>231 / 231</h3><p>项目记录最近完整合成回归；自主学习专项 24 tests。属于历史基线，不是本页运行结果，也不代表真实模型通过。</p></article><article class="card"><span class="status limit">有限真实 API 样本（仓库已有记录）</span><h3>有交流，无学习证据</h3><p>记录有一次真实严格 JSON 交流提交及冷启动回放；当时 appraisal 为 null、candidates 为空。真实自主学习质量没有证据。</p></article><article class="card"><span class="status future">仍待验证 / 未部署</span><h3>非空 appraisal 未验证</h3><p>非空 appraisal / belief / growth candidate 实际 API 路径未验证；未验证正式初始化与部署。标准干净安装 / 最低 Node 24.0.0 也未完整复验。</p></article></div>
+        <div class="callout">231 / 24 是仓库已记录的历史测试结果，并非这个 HTML 的健康探针。当前页面不执行 npm 命令、不会访问网络，也不读取本机配置或凭据。</div>
+      </section>
+
+      <section id="roadmap" aria-labelledby="h-roadmap">
+        <div class="section-heading"><span class="section-number">09</span><div><h2 id="h-roadmap">能力边界与未实现的未来候选</h2><p>“未实现”不是本架构的隐含组成部分；不能从当前数据流推导为已授权能力。</p></div></div>
+        <div class="grid two">
+          <article class="card"><span class="status current">当前边界</span><h3>能做 / 不能做</h3><ul><li>能：同主体本机显式交流、持久来源经历 / 相关记忆、有限资料授权的前台学习闭环。</li><li>不能：任意网络搜索、调用工具或执行代码；模型自批成长；后台学习；无限记忆；向量检索。</li><li>不保证：真实模型总能遵循严格 JSON；测试分数等于一般能力；数据库加密或成为抗篡改账本。</li></ul></article>
+          <article class="card"><span class="status future">候选设计，不是承诺</span><h3>需独立评估的后续议题</h3><ul><li><strong>跨进程 leases：</strong>需要 owner / 到期 / 抢占 / 崩溃语义；当前 instanceId 不是锁。</li><li><strong>后台学习：</strong>需要新调度、可观测性、授权撤销与关机生命周期。</li><li><strong>长期记忆：</strong>需要容量、可删除 / 纠正、压缩与隐私披露策略；当前没有自动遗忘或向量库。</li><li><strong>工具与执行：</strong>需逐类 capability、沙箱和用户授权；当前没有 tool adapter。</li></ul></article>
+        </div>
+        <div class="panel"><h3>未来候选各自有独立授权边界</h3><div class="grid two"><article class="card"><h3>跨进程运行租约</h3><p>owner / expiry / recovery；不是当前 instanceId。</p></article><article class="card"><h3>后台学习调度</h3><p>撤权 / shutdown / 可观测；当前只有前台 runner。</p></article><article class="card"><h3>长期记忆治理</h3><p>删除 / 压缩 / 容量 / 隐私；当前无自动遗忘 / vector DB。</p></article><article class="card"><h3>受限工具能力</h3><p>逐类授权 / 沙箱 / 审计；当前无工具执行器。</p></article></div><p class="small">这些候选之间不表示模块依赖或既有数据流；任何扩展均须单独设计、授权与验证。</p></div>
+        <div class="panel"><h3>本页图例与维护边界</h3><p><span class="blue">蓝色</span> 表示本机调用 / 编排；<span class="green">绿色</span> 表示持久化数据关系；<span class="warm">暖色</span> 表示模型不可信边界、授权或需关注的风险。箭头是流程方向，不表示任何模型写库能力。页面依据项目版本 0.1.0 的源码与项目说明静态维护，不随本地运行状态自动更新。</p></div>
+      </section>
+      <footer class="footer"><strong>独立离线页面。</strong> 样式、图形与脚本全部内联；无 CDN、外部字体、图形渲染器、网络请求或动态内容加载。关闭 JavaScript 后全部架构内容与导航链接仍可阅读；主题和打印按钮仅为增强功能。</footer>
+    </main>
+  </div>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const themeButton = document.getElementById('themeToggle');
+      const printButton = document.getElementById('printPage');
+      const links = Array.from(document.querySelectorAll('.side-nav a, .mobile-nav a'));
+      const sections = Array.from(document.querySelectorAll('main section[id]'));
+      const setTheme = (theme) => {
+        root.dataset.theme = theme;
+        themeButton.setAttribute('aria-pressed', String(theme === 'dark'));
+        themeButton.setAttribute('aria-label', theme === 'light' ? '切换为深色主题' : '切换为浅色主题');
+      };
+      try {
+        if (localStorage.getItem('shuguang-architecture-theme') === 'dark') setTheme('dark');
+      } catch (_) {
+        // file:// 环境可能禁用本地存储；浅色默认与主题按钮仍可正常使用。
+      }
+      themeButton.addEventListener('click', () => {
+        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        try { localStorage.setItem('shuguang-architecture-theme', next); } catch (_) { /* 当前页主题仍然生效 */ }
+      });
+      printButton.addEventListener('click', () => window.print());
+      // 原生 details 在打印时需显式打开，完成后恢复用户的折叠状态。
+      let printDetails = [];
+      window.addEventListener('beforeprint', () => {
+        printDetails = Array.from(document.querySelectorAll('details')).filter(detail => !detail.open);
+        printDetails.forEach(detail => { detail.open = true; });
+      });
+      window.addEventListener('afterprint', () => {
+        printDetails.forEach(detail => { detail.open = false; });
+        printDetails = [];
+      });
+      const markActive = (id) => {
+        for (const link of links) {
+          const active = link.getAttribute('href') === `#${id}`;
+          if (active) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+          link.classList.toggle('active', active);
+        }
+      };
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (visible) markActive(visible.target.id);
+        }, { rootMargin: '-18% 0px -68% 0px', threshold: [0, .2, .5, .8] });
+        sections.forEach((section) => observer.observe(section));
+      } else {
+        window.addEventListener('hashchange', () => markActive(location.hash.slice(1)));
+      }
+      const requested = location.hash.slice(1);
+      markActive(sections.some((section) => section.id === requested) ? requested : 'overview');
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "@shuguang/dawn",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "exports": { "./protocol": "./src/protocol/index.ts" },
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "node --test tests/*.test.ts",
+    "check": "tsc --noEmit -p tsconfig.json"
+  }
+}

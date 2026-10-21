@@ -1,0 +1,23 @@
+# Dependencies and generated artifacts
+node_modules/
+*.tsbuildinfo
+build/
+dist/
+out/
+coverage/
+*.log
+.DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+config/dawn.local.json
+*.token
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Editor files
+.vscode/
+.idea/

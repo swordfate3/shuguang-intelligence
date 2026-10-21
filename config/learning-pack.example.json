@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "id": "local-study-example",
+  "title": "本地自主学习演示（合成规则，不是通识知识）",
+  "goals": [
+    {
+      "id": "signal",
+      "title": "学习合成灯号规则",
+      "topics": ["灯号", "规则"],
+      "material": "演示世界有两种灯号。蓝灯对应动作 WAIT，橙灯对应动作 MOVE。这仅是合成练习规则，不适用于现实交通。",
+      "practice": [{"id": "practice-blue", "prompt": "演示世界的蓝灯对应什么动作？只写动作。", "answer": "WAIT"}],
+      "assessment": [{"id": "test-orange", "prompt": "演示世界的橙灯对应什么动作？只写动作。", "answer": "MOVE"}]
+    },
+    {
+      "id": "label",
+      "title": "学习合成标签规则",
+      "topics": ["标签", "规则"],
+      "material": "演示标签语法：标签 LUMI 代表编号 17，标签 VELA 代表编号 29。这些都是为测试而定义的任意对应关系。",
+      "practice": [{"id": "practice-lumi", "prompt": "LUMI 的编号是多少？只写数字。", "answer": "17"}],
+      "assessment": [{"id": "test-vela", "prompt": "VELA 的编号是多少？只写数字。", "answer": "29"}]
+    }
+  ]
+}

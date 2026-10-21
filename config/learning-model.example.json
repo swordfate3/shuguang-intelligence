@@ -1,0 +1,8 @@
+{
+  "baseUrl": "https://model.example.invalid/v1",
+  "model": "your-model",
+  "credentialEnv": "DAWN_LEARNING_EVAL_API_KEY",
+  "maxCalls": 4,
+  "reasoningEffort": "low",
+  "timeoutMs": 30000
+}

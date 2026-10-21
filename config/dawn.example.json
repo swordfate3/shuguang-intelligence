@@ -1,0 +1,11 @@
+{
+  "exampleOnly": true,
+  "description": "Illustrative only: current application does not read this file.",
+  "model": {
+    "provider": "未配置",
+    "credentialEnv": "DAWN_MODEL_API_KEY"
+  },
+  "autonomy": {
+    "enabled": false
+  }
+}
