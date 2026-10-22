@@ -14,12 +14,16 @@
 - `model`：明确模型名，非空且无首尾空白、最多256字符，不含终端控制字符。
 - `credentialEnv`：当前进程中已有的密钥环境变量名，不接受直接 key 或命令。
 - `maxCalls`：1–10 的服务实例调用上限，失败同样扣除；重启会重置，不是持久日预算。
-- `reasoningEffort`：low/medium/high/xhigh/max，显式发送，不自动回退。
+- `reasoningEffort`：off/low/medium/high/xhigh/max；off省略 `reasoning_effort`，其余显式发送，不自动回退。off不保证供应商关闭思考，档位列表不是模型能力认证。
 - `timeoutMs`：可选整数1–30000，缺省8000；覆盖完整请求和正文读取，不是自动重试。示例显式设为30000以容纳结构化生成，旧五字段配置仍有效。
 
 legacy以 `serve ... --model-config /absolute/path/model.json --chat-db /absolute/path/chat.sqlite` 启用；新模式以 `serve --subject-db ... --model-config ...` 启用，详见主体运行契约。对话库必须经 `chat-init` 显式创建，详见[对话记录与持久额度](dialogue-memory.md)；不再支持仅有 model-config 的无台账服务模式。密钥应由宿主进程配置或私有包装脚本提供，不写源码、普通示例或终端输出。
 
 历史授权测试的 `config/dawn.local.json` 被Git忽略，保留了当时入口、模型与环境变量引用，不含密钥。它不是默认配置或新的调用授权；向导不会读取、修改或沿用它，迁移环境需重新显式准备配置与凭据。
+
+## 服务运行中选择
+
+Pi `/dawn model`、`/dawn thinking` 或独立request命令可控制同一个服务实例；显式 `/dawn models` 才鉴权GET原入口的 `/models`。不生成、不会披露历史；无自动探测、重试或凭据发现。选择不重建适配器、不重置实例或永久额度；仅服务进程内共享，不改配置/主体，也不影响独立学习runner。具体命令、目录限额和取消语义见[运行中选择](model-configuration.md#运行中从-pi-薄接口选择模型与-thinking)。
 
 ## 当前对话边界
 

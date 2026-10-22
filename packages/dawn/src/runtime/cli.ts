@@ -24,6 +24,12 @@ const HELP = `曙光智慧 ${APP_VERSION} — 六核心独立数字伙伴（显�
   npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- status
   npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- wake 0
   npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- say "你好"
+  npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- model-status
+  npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- models
+  npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- model <选择版本> <模型ID>
+  npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- thinking <选择版本> <档位>
+  models显式GET远程目录；选择仅存进程、不改主体/预算、不重置实例次数，off仅省略推理参数。
+  Pi薄接口可用/dawn model、/dawn thinking选择器，不切换Pi模型。
   应用错误返回非零退出码；取消/响应丢失后先查状态，不自动重试。
 
 自主学习（一次授权本地资料与预算；v3新库，不迁移已有库）：

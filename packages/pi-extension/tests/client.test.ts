@@ -16,6 +16,31 @@ test("commands are explicit; wake/sleep require safe state revisions", () => {
   }
 });
 
+test("model commands require explicit discovery and safe selection revisions", () => {
+  assert.equal(parseCommand("model-status").type, "model-status");
+  assert.equal(parseCommand("models").type, "model-list");
+  const model = parseCommand("model 7 vendor/model with spaces");
+  assert.equal(model.type, "model-select");
+  assert.equal(model.type === "model-select" ? model.model : undefined, "vendor/model with spaces");
+  assert.equal(parseCommand("thinking 0 off").type, "thinking-select");
+  for (const input of ["model", "thinking", "model -1 id", "thinking 01 low", "thinking 0 none", "thinking 0 minimal", "thinking 9007199254740992 low", "model 0 bad\u202eid", `model 0 ${"a".repeat(257)}`]) {
+    assert.throws(() => parseCommand(input));
+  }
+});
+
+test("client rejects status/reply responses to model requests and model responses to say", async () => {
+  const transport: DawnTransport = { async request(request) {
+    return { version: 1, requestId: request.requestId, type: "reply", text: "wrong response type" };
+  } };
+  await assert.rejects(new DawnClient(transport).command("model-status", signal()), /不匹配/);
+  const modelTransport: DawnTransport = { async request(request) {
+    return { version: 1, requestId: request.requestId, type: "model", state: {
+      selectionRevision: 0, model: "model", thinking: "low", levels: ["low"], models: ["model"], calls: 0, maxCalls: 1,
+    } };
+  } };
+  await assert.rejects(new DawnClient(modelTransport).command("say hello", signal()), /不匹配/);
+});
+
 test("default client cannot pretend service is available", async () => {
   const client = new DawnClient();
   for (const command of ["status", "wake 0", "sleep 0", "say 你好"]) {

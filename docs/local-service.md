@@ -13,7 +13,7 @@ npm start -- request --endpoint http://127.0.0.1:7341 --token-file /absolute/pri
 npm start -- request --endpoint http://127.0.0.1:7341 --token-file /absolute/private/service.token -- say "你好"
 ```
 
---后只允许status、wake/sleep加安全整数revision、say加单个完整消息参数。endpoint与token-file必须显式提供，不发现环境、不创建库或拉起服务。输出应用error时退出码1；成功response退出0。SIGINT/SIGTERM传播取消，响应丢失或取消后仍应查状态确认，不自动重试。HTTP client与命令解析由dawn拥有，Pi只复用实现。
+--后允许status、wake/sleep加安全整数revision、say加单个完整消息参数，以及model-status、models、model <选择版本> <ID>、thinking <选择版本> <档位>。含空格的模型ID须作为单个引号参数；模型选择版本与主体revision独立。endpoint与token-file必须显式提供，不发现环境、不创建库或拉起服务。输出应用error时退出码1；成功response退出0。SIGINT/SIGTERM传播取消，响应丢失或取消后仍应查状态确认，不自动重试。HTTP client与命令解析由dawn拥有，Pi只复用实现。
 
 ## 显式准备与启动
 
@@ -54,7 +54,14 @@ exec pi -e /workspace/projects/shuguang-intelligence/packages/pi-extension/src/i
 /dawn wake 0
 /dawn sleep 1
 /dawn say 你好
+/dawn model-status
+/dawn model
+/dawn models
+/dawn thinking
+/dawn thinking high
 ```
+
+`model`打开模型选择器，先确认是否GET当前曙光入口刷新目录；选择否仅用缓存，取消不提交。`models`是明确远程刷新命令；`model <ID>`只选择缓存内ID。thinking包含off（省略参数，不保证关闭思考）。选择仅此服务进程内共享，不改Pi模型/密钥、配置文件、主体或永久预算，不重置适配器次数，不影响已开始的生成；重启回到配置初值。详见[模型选择](model-configuration.md)。
 
 先 status 获取当前 revision，示例数字不能盲目复用。未配模型时 say 返回 NOT_IMPLEMENTED；配模型后须先 wake，从已绑定对话库接续最近的完整问答，保存成功对话与调用台账。关闭 Pi 仅断开客户端，不休眠/终止独立服务。
 

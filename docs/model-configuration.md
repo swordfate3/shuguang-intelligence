@@ -40,7 +40,7 @@ npm start -- model-config --output /absolute/private/model.json
 当前仅支持 **OpenAI Chat Completions**（`/chat/completions`，非流式、`max_tokens`、`reasoning_effort`）。不支持Anthropic/Google原生协议、OpenAI Responses、OAuth、凭据命令、自定义认证头、自动兼容转换或自动降档。供应商还须返回合规 `usage` 并支持所选推理档位及严格JSON任务；勾选兼容并不证明这些能力。
 
 - URL只接受HTTPS根入口或 `/v1`；本机假上游允许HTTP `127.0.0.1`，不接受路径任意拼接、userinfo、查询参数或fragment。
-- 推理档位：`low / medium / high / xhigh / max`；不含Pi的 `off / minimal`。
+- 推理档位：`off / low / medium / high / xhigh / max`；`off`仅省略 `reasoning_effort`，不保证供应商实际关闭思考。不支持 `minimal`，不自动映射为 `none`。
 - timeout：1–30000ms，向导建议30000；旧手写配置缺省仍为8000。
 - 实例次数：1–10，失败也计数、重启实例会重置；**不是持久预算或货币上限**。两目标完整学习通常需要4次，主体总预算与学习子预算仍须单独授权。
 - 向导不收集、保存或验证密钥值。凭据应由私有运行环境/包装脚本注入，不要把真实key粘贴进向导、聊天或示例文件。
@@ -61,6 +61,28 @@ npm start -- learning-run --db /absolute/private/learning.sqlite \
 ```
 
 保存配置不是授权发送资料或付费调用，也不启动服务、开库或生成请求。真实使用前仍确认资料披露、预算与费用；见[模型API](model-api.md)、[学习方案](learning-evaluation.md)和[自主学习](autonomous-learning.md)。
+
+## 运行中从 Pi 薄接口选择模型与 thinking
+
+服务使用 `--model-config` 启动后，Pi 只发控制命令，模型请求仍由曙光的同一个适配器实例执行：
+
+```text
+/dawn model-status         # 当前模型、thinking、选择版本与实例次数；不联网
+/dawn model                # 确认是否远程刷新目录，再选择模型
+/dawn models               # 明确从当前曙光入口 GET /models，只列目录、不生成
+/dawn model deepseek-v4-pro # 从已发现的缓存目录切换；不隐式刷新
+/dawn thinking             # 打开档位选择器
+/dawn thinking high        # 明确选择档位
+/dawn thinking off         # 省略 reasoning_effort，不代表服务商保证禁用思考
+```
+
+示例ID并非默认值，只有当前入口已发现的ID可切换；首次缓存只有配置中的模型。取消选择器不提交；目录失败保留旧缓存并停止本次流程，不偷偷用旧目录完成选择。目录最多128条，1MiB上游正文、48KiB序列化ID列表；8秒发现期限，仍受控制请求含排队10秒总期限限制。目录并非能力或价格认证：所列模型和档位是否兼容 `max_tokens`、严格JSON、`usage`，仍需另行授权真实验证。
+
+选择受服务FIFO与独立 `selectionRevision` CAS保护；冲突不自动重试。进行中的生成先完成，不中途切换。同一实例的 `maxCalls`不因切模型或thinking重置，失败继续计数；主体身份、记忆、revision和永久预算不因控制操作变化。目录发现不消耗生成次数，但会发送该入口的显式模型凭据，不发送对话或主体投影。
+
+**选择仅存服务进程内，所有连接此服务的客户端共享。** 不写回 `model.json`、SQLite或Pi设置；重启从文件恢复初值，若要长期默认值请单独修改私有配置。仅限原入口/凭据范围，不能从Pi切提供商、导入Pi模型/密钥，也不控制另起的 `learning-run` 进程。旧服务不支持新增命令时须由使用者手动重启到新代码；扩展不自动重启本体。
+
+独立CLI可做相同操作，不依赖Pi：`request … -- model-status`、`request … -- models`、`request … -- model <selectionRevision> <ID>`、`request … -- thinking <selectionRevision> <level>`。先查询最新选择版本；这不是主体生命周期revision。取消或响应丢失后先重新查询，不自动重发。
 
 ## 安全与限制
 

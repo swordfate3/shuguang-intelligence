@@ -57,6 +57,26 @@ test("say sends exactly its one argument, preserving all text", async t => {
   await assert.rejects(runRequestCli(args("say", "two", "arguments"), signal()));
 });
 
+test("model controls use explicit commands, preserve space-containing IDs and reject bad syntax before reading credentials", async t => {
+  const received: DawnRequest[] = [];
+  const { args, endpoint } = await fixture(t, request => {
+    received.push(request);
+    return { version: 1, requestId: request.requestId, type: "model", state: {
+      selectionRevision: 2, model: "vendor/model with spaces", thinking: "off", levels: ["off", "low"],
+      models: ["vendor/model with spaces"], calls: 0, maxCalls: 4,
+    } };
+  });
+  for (const command of [["model-status"], ["models"], ["model", "1", "vendor/model with spaces"], ["thinking", "2", "off"]]) {
+    assert.equal((await runRequestCli(args(...command), signal())).type, "model");
+  }
+  assert.deepEqual(received.map(request => request.type), ["model-status", "model-list", "model-select", "thinking-select"]);
+  assert.equal(received[2]?.type === "model-select" ? received[2].model : undefined, "vendor/model with spaces");
+  for (const command of [["model"], ["model", "-1", "id"], ["model", "1.5", "id"], ["thinking", "0", "none"], ["models", "extra"], ["thinking", "0", "low", "extra"]]) {
+    await assert.rejects(runRequestCli(["request", "--endpoint", endpoint, "--token-file", "/missing/private/token", "--", ...command], signal()), /用法/);
+  }
+  assert.equal(received.length, 4);
+});
+
 test("valid application error envelopes are returned, not reported as success", async t => {
   const { args } = await fixture(t, request => ({
     version: 1, requestId: request.requestId, type: "error", code: "CONFLICT", message: "revision conflict",

@@ -70,7 +70,8 @@ export class HttpDawnTransport implements DawnTransport {
             const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)));
             assertDawnResponse(value);
             if (value.requestId !== request.requestId || (value.type !== "error" &&
-                (request.type === "say" ? value.type !== "reply" : value.type !== "status"))) {
+                (request.type === "say" ? value.type !== "reply" :
+                  ["model-status", "model-list", "model-select", "thinking-select"].includes(request.type) ? value.type !== "model" : value.type !== "status"))) {
               throw new Error("Mismatched response");
             }
             finish(null, value);

@@ -26,6 +26,12 @@
 - `status`：读取主体生命周期与 revision，并带当前进程 `instanceId`、`startedAt` 和 `autonomy: false`。
 - `wake` / `sleep`：必须携带非负安全整数 `expectedRevision`；成功返回 status，冲突返回 `CONFLICT`，不自动覆盖或重试。
 - `say`：未配置模型返回 `NOT_IMPLEMENTED`；显式配置模型和主体绑定对话库并清醒时可返回 reply，休眠不调用。成功问答保存为后续有界上下文，失败收费但不进入历史，不自动变成事实/知识。
+- `model-status`：读取安全的服务进程模型选择状态，不访问上游。
+- `model-list`：显式鉴权GET当前曙光模型入口的 `/models`，不生成、不发送历史；成功更新进程缓存，失败不替换。8秒发现期限仍受10秒控制请求总期限约束。
+- `model-select`：携带 `expectedRevision`（**选择版本，不是主体版本**）和缓存目录中的 `model` ID。
+- `thinking-select`：携带选择 `expectedRevision` 和 `thinking`（off/low/medium/high/xhigh/max）。off仅省略上游参数，不映射none，不认证模型能力。
+
+后四者成功返回 `type:"model", state:{selectionRevision,model,thinking,levels,models,calls,maxCalls}`，不含key/入口/主体数据。模型ID最多256字符、禁控制/格式/行分隔符，目录最多128个唯一ID；当前model可在刷新目录之外。选择变化revision+1，同值no-op；不支持控制的模型返回NOT_IMPLEMENTED，过期版本返回CONFLICT，其余安全失败UNAVAILABLE。操作在现有FIFO内，不改主体或生成预算；适配器不重建，正在进行的生成不切换。选择不持久化、不改变独立学习进程。旧服务仍可能拒新命令，客户端不降档或重试。
 
 响应保留同一个请求 ID。客户端校验 schema、相关 ID 与响应类型。未知字段、版本和非法数字会被拒绝。实例 ID 表示响应来自哪个服务实例，与持久主体身份不同；它不是跨实例唯一写入租约。
 
@@ -33,7 +39,7 @@
 
 HTTP 鉴权、路径、格式和资源错误不泄露原始正文、凭据或 SQLite 异常。合法业务错误通过协议 error 响应表示；HTTP/网络失败由 transport 抛出安全错误。
 
-客户端取消不能证明服务器未提交：如果修改已经提交而响应丢失，需重新查询 status，再决定下一步。requestId 当前用于关联，不提供持久去重或恰好一次执行保证。CAS 只阻止基于过期 revision 的覆盖。
+客户端取消不能证明服务器未提交：如果修改已经提交而响应丢失，需重新查询 status，再决定下一步。requestId 用于关联；say另有持久预占去重，但不承诺恰好一次交付，其他控制操作没有持久去重。CAS 只阻止基于过期主体或选择revision的覆盖；模型选择版本在进程重启时归零，不能当跨服务实例的租约。
 
 ## 当前能力边界
 

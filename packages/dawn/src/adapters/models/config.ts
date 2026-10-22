@@ -7,7 +7,7 @@ export interface ModelFileConfig {
   readonly model: string;
   readonly credentialEnv: string;
   readonly maxCalls: number;
-  readonly reasoningEffort: "low" | "medium" | "high" | "xhigh" | "max";
+  readonly reasoningEffort: "off" | "low" | "medium" | "high" | "xhigh" | "max";
   readonly timeoutMs?: number;
 }
 
@@ -22,7 +22,7 @@ export function parseModelConfig(value: unknown): ModelFileConfig {
       typeof config.baseUrl !== "string" || typeof config.model !== "string" ||
       config.model.length > 256 || /[\x00-\x1f\x7f-\x9f]/u.test(config.model) ||
       typeof config.credentialEnv !== "string" || !/^[A-Z][A-Z0-9_]{0,95}$/.test(config.credentialEnv) ||
-      typeof config.reasoningEffort !== "string" || !["low", "medium", "high", "xhigh", "max"].includes(config.reasoningEffort) ||
+      typeof config.reasoningEffort !== "string" || !["off", "low", "medium", "high", "xhigh", "max"].includes(config.reasoningEffort) ||
       typeof config.maxCalls !== "number" || !Number.isSafeInteger(config.maxCalls) || config.maxCalls < 1 || config.maxCalls > 10 ||
       (hasTimeoutMs && (typeof config.timeoutMs !== "number" || !Number.isSafeInteger(config.timeoutMs) ||
         config.timeoutMs < 1 || config.timeoutMs > 30_000))) {

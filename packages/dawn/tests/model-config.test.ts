@@ -42,10 +42,11 @@ test("model configuration validates offline without credentials or model request
   const config = { baseUrl: "https://example.invalid/v1", model: "synthetic-model", credentialEnv: "DAWN_WIZARD_UNSET_SYNTHETIC",
     maxCalls: 4, reasoningEffort: "low", timeoutMs: 30000 };
   assert.deepEqual(parseModelConfig(config), config);
+  assert.deepEqual(parseModelConfig({ ...config, reasoningEffort: "off" }), { ...config, reasoningEffort: "off" });
   for (const change of [{ baseUrl: "https://user:secret@example.invalid/v1" }, { baseUrl: "https://example.invalid/v1?key=x" },
     { baseUrl: "http://example.invalid/v1" }, { baseUrl: "https://example.invalid/api/v1" }, { baseUrl: "!credential-command" },
     { model: "bad\u001b[31m" }, { model: "m".repeat(257) }, { model: " padded " }, { model: "" },
-    { credentialEnv: "$SECRET" }, { apiKey: "synthetic-key-not-allowed" }, { reasoningEffort: "off" }]) {
+    { credentialEnv: "$SECRET" }, { apiKey: "synthetic-key-not-allowed" }, { reasoningEffort: "none" }]) {
     assert.throws(() => parseModelConfig({ ...config, ...change }));
   }
 });

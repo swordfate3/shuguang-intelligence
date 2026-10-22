@@ -46,7 +46,7 @@ test("wizard defaults, order, private creation and credential-free validation", 
   assert.deepEqual(ui.prompts.map(prompt => prompt.slice(0, prompt.indexOf("[") > 0 ? prompt.indexOf("[") : prompt.length)), [
     "用途：1 交流（默认，建议最多3次），2 学习（建议最多4次）：", "连接类型：1 OpenAI，2 自定义 OpenAI 兼容：",
     "baseUrl ", "模型 ID（必填，不会自动选择）：", "凭据环境变量名称（仅填写变量名，请勿粘贴密钥）",
-    "reasoning_effort（low/medium/high/xhigh/max）", "超时毫秒（1–30000）",
+    "reasoning_effort（off/low/medium/high/xhigh/max）", "超时毫秒（1–30000）",
     "本配置单次运行调用上限（1–10）", "确认保存？（yes/no）: ",
   ]);
   const value: unknown = JSON.parse(readFileSync(path, "utf8"));
@@ -93,7 +93,7 @@ test("invalid answers are retried with fixed messages and never leaked into prev
     "file:///etc/passwd", "https://127.0.0.1:1234/v1", // bad then loopback URL
     `model\u001b[31m`, "synthetic-safe-model", // terminal control rejected; safe replacement
     "not an env name", "SYNTHETIC_WIZARD_CREDENTIAL", // bad then valid env name
-    "ultra", "max", // unsupported then valid effort
+    "none", "max", // unsupported then valid effort
     "0", "30001", "8000", // timeout boundary retries
     "01", "11", "4", // calls retries
     "perhaps", "no", // confirmation retries then cancel
@@ -106,7 +106,7 @@ test("invalid answers are retried with fixed messages and never leaked into prev
   assert.ok(shown.includes("输入无效，请按提示重新输入。"));
   assert.ok(!shown.includes(secret));
   assert.ok(!shown.includes("/etc/passwd"));
-  assert.ok(!shown.includes("ultra"));
+  assert.ok(!shown.includes("none"));
   assert.ok(!shown.includes("perhaps"));
   assert.ok(!shown.includes('"apiKey"'));
   assert.ok(!shown.includes('"command"'));
@@ -125,16 +125,23 @@ test("field retry limit stops after five attempts without echoing input or creat
   assert.throws(() => lstatSync(path), { code: "ENOENT" });
 });
 
-test("preview visibly escapes Unicode terminal formatting characters in valid model identifiers", async t => {
-  const model = "synthetic\u2028\u202e-model";
-  const { ui, result } = await createWith(t, ["1", "1", "", model, "", "", "", "", "yes"]);
+test("wizard saves off explicitly and describes omission rather than guaranteed disabled reasoning", async t => {
+  const { path, ui, result } = await createWith(t, ["1", "1", "", "synthetic-off-model", "", "off", "", "", "yes"]);
   assert.deepEqual(result, { modelConfigCreated: true });
+  assert.equal((JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>).reasoningEffort, "off");
+  assert.ok(ui.shown.some(text => text.includes("off 仅会省略 reasoning_effort 字段") && text.includes("不等于模型保证关闭思考")));
+});
+
+test("wizard rejects Unicode format/line controls before display or persistence and permits safe retry", async t => {
+  const unsafe = "synthetic\u2028\u202e-model";
+  const { path, ui, result } = await createWith(t, ["1", "1", "", unsafe, "synthetic-safe-model", "", "", "", "", "yes"]);
+  assert.deepEqual(result, { modelConfigCreated: true });
+  assert.ok(ui.shown.includes("输入无效，请按提示重新输入。"));
   const preview = ui.shown.find(text => text.includes("配置预览"));
   assert.ok(preview);
-  assert.ok(preview.includes("\\u2028"));
-  assert.ok(preview.includes("\\u202e"));
-  assert.ok(!preview.includes("\u2028"));
-  assert.ok(!preview.includes("\u202e"));
+  assert.ok(preview.includes("synthetic-safe-model"));
+  assert.ok(!ui.shown.join("\n").includes(unsafe));
+  assert.equal((JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>).model, "synthetic-safe-model");
 });
 
 test("no confirmation and an aborted signal never create a destination", async t => {

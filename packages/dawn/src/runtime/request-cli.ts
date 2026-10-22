@@ -32,8 +32,9 @@ export async function runRequestCli(args: readonly string[], signal: AbortSignal
   if (endpoint === undefined || tokenFile === undefined) throw usageError();
 
   const command = args.slice(separator + 1);
-  const validLength = command[0] === "status" ? command.length === 1 :
-    command[0] === "wake" || command[0] === "sleep" || command[0] === "say" ? command.length === 2 : false;
+  const validLength = ["status", "model-status", "models"].includes(command[0] ?? "") ? command.length === 1 :
+    command[0] === "wake" || command[0] === "sleep" || command[0] === "say" ? command.length === 2 :
+      command[0] === "model" || command[0] === "thinking" ? command.length === 3 : false;
   if (!validLength) throw usageError();
 
   // Validate all command syntax and endpoint canonicalization before touching credentials.
@@ -50,5 +51,5 @@ export async function runRequestCli(args: readonly string[], signal: AbortSignal
 }
 
 function usageError(): Error {
-  return new Error("用法：request --endpoint http://127.0.0.1:<port> --token-file <绝对路径> -- status | wake <revision> | sleep <revision> | say <消息>");
+  return new Error("用法：request --endpoint http://127.0.0.1:<port> --token-file <绝对路径> -- status | wake <revision> | sleep <revision> | say <消息> | model-status | models | model <选择版本> <ID> | thinking <选择版本> <等级>");
 }

@@ -7,6 +7,7 @@ import type { ModelPort } from "../adapters/models/port.ts";
 import type { SubjectAttempt, SubjectStore } from "./subject-store.ts";
 import { parseDeliberation, prepareTurn } from "./deliberation.ts";
 import { assertData, timestamp } from "../core/guards.ts";
+import { handleModelControl } from "./model-control.ts";
 
 /** Six-core application owner. The caller owns store and cancellation; no background autonomy. */
 export class SubjectService {
@@ -39,6 +40,10 @@ export class SubjectService {
     signal.throwIfAborted();
     const base = { version: PROTOCOL_VERSION, requestId: request.requestId };
     try {
+      if (request.type === "model-status" || request.type === "model-list" ||
+          request.type === "model-select" || request.type === "thinking-select") {
+        return await handleModelControl(this.#model, request, signal);
+      }
       if (request.type === "say") {
         if (!this.#model) return { ...base, type: "error", code: "NOT_IMPLEMENTED", message: "No model is configured." };
         return { ...base, type: "reply", text: await this.#say(request, this.#model, signal) };

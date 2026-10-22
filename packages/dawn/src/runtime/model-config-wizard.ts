@@ -10,12 +10,13 @@ export interface ModelConfigUI {
 
 const INPUT_ERROR = "输入无效，请按提示重新输入。";
 const FIELD_RETRIES = 5;
-const REASONING_EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
+const REASONING_EFFORTS = ["off", "low", "medium", "high", "xhigh", "max"] as const;
 const USAGE_NOTE = `此向导只写入模型配置，不收集或读取密钥、不连接模型，也不执行配置中的命令。
 配置仅声明凭据环境变量名称；保存配置不等于授权调用，数据库中的永久调用预算仍须单独显式设置。
 完成后可在需要的命令上复用 --model-config <配置文件路径>；例如 learning-run 或 serve。
 交流建议最多3次；学习若覆盖两个目标，建议最多4次调用。请按资料范围、预算和费用自行授权。`;
-const COMPATIBILITY_NOTE = `仅支持 OpenAI Chat Completions 兼容接口；服务端必须支持 reasoning_effort 并返回 usage。
+const COMPATIBILITY_NOTE = `仅支持 OpenAI Chat Completions 兼容接口；非 off 选项要求服务端支持 reasoning_effort，服务端须返回 usage。
+选择 off 仅会省略 reasoning_effort 字段，不等于模型保证关闭思考；不同模型的实际能力可能不同。
 不自动发现供应商或模型，也不会验证模型名称/连接。`;
 
 function invalidArguments(): never {
@@ -148,7 +149,7 @@ export async function runModelConfigWizard(
       return isValidConfigField({ baseUrl, model, credentialEnv: value }) ? value : undefined;
     });
 
-    const reasoningEffort = await askValid(ui, signal, "reasoning_effort（low/medium/high/xhigh/max）[low]：", answer => {
+    const reasoningEffort = await askValid(ui, signal, "reasoning_effort（off/low/medium/high/xhigh/max）[low]：", answer => {
       const value = defaulted(answer, "low");
       return (REASONING_EFFORTS as readonly string[]).includes(value) ? value : undefined;
     }) as ModelFileConfig["reasoningEffort"];

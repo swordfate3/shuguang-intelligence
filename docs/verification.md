@@ -1,5 +1,28 @@
 # 验证记录
 
+## Pi薄接口模型与thinking选择（2026-10-21）
+
+- 新增同一adapter实例的安全模型状态、显式GET `/models`、模型/档位选择；接通protocol、独立CLI/client、两类服务FIFO及Pi确认/选择器。独立 `selectionRevision` CAS与主体revision分离；控制不读取/修改主体，不预占生成，不重建adapter或重置次数。off仅省略参数。
+- 目录限制1MiB上游正文、128条、256字符ID、48KiB序列化ID列表、8秒；协议仍64KiB、控制请求10秒含排队。测试包含声明/流式超量、非法UTF8/schema/Unicode控制符/超条目/Unicode目录wire超量、重定向拒绝、超时/取消/错误脱敏、缓存失败保留。构造/配置/远程目录统一ID策略，原向导允许格式符的测试已改为拒绝并安全重问，不放宽生产规则。
+- adapter测试验证显式GET鉴权且不生成/不收费、共享生成次数、失败不退款、CAS/同值no-op、未知ID与busy拒绝、off省略、当前model捕获及原始上游model不受信。
+- 临时v2主体+真实loopback控制/模型适配器/SQLite测试：状态与预算在发现/选择后逐项不变；阻塞生成后选择FIFO等待，旧请求仍用旧模型，后续请求使用新模型；排队期间取消目录/档位后无GET/变更，队列仍可用。legacy、无控制模型、非法请求和活动取消路径同样覆盖。
+- Pi选择器15项合成测试覆盖明确刷新确认、缓存、含空格ID映射、thinking/off、取消、CONFLICT不重试、shutdown拒迟到写入、无UI fail closed、旧status/reply通知兼容与目录失败不降级。仅mock Pi UI，不是真实Pi TUI验证。
+- 额外完整链路回归：mock Pi UI → 真实DawnClient/HTTP → SubjectService → SQLite → OpenAICompatibleModel → loopback假上游。先交流一次，外侧选择模型及high，再交流一次；同一主体历史接续、仅交流增加revision/完成次数，同adapter calls从1→2不重置，真实请求body携带对应model/thinking。最后off/status不生成。
+- 最终 `npm test` **279/279通过**；`npm run verify:acceptance`（交流+24项学习）及 `npm run verify:learning:offline`通过。借用既有宿主TS5.9.3/Node/Pi声明的根配置 `--noEmit`通过；标准 `npm run check`仍127（tsc未找到），没有安装依赖，不声称干净安装或最低Node认证。
+- 独立有限快照静态审查未发现未关闭的可证实P1/P2；原测试契约矛盾已关闭并全量复验，另按建议补排队取消组合测试。审查不是动态认证；新增完整链路测试在审查后补充。
+- 本轮未读取真实模型配置/密钥、调用真实目录/生成/学习、重启现有服务、修改正式数据或安装/提交/push。代码选择仅进程内；现有旧服务须用户手动重启，Pi须重载扩展；不自动保存默认值或管理提供商。临时日志 `/tmp/dawn-selection-{focused,full-final,service-final,integrated,acceptance,offline,tsc-final,standard-check}.log`仅诊断，不是持久交付物。
+
+## 用户授权本机启动（2026-10-21）
+
+- 用户随后要求从接口获取可用模型：用私有凭据对显式入口执行一次GET /v1/models（15秒deadline、1MiB响应上限、拒重定向、仅输出模型ID，不返回原始错误/凭据），返回deepseek-flash、deepseek-v4-pro、glm-5-turbo、glm-5.3、glm-5.3-flash。历史gpt-6.1-sol未列出；已私有备份旧模型配置并改为deepseek-v4-pro，重启后status awake/revision1、budget计数全0。模型列表仅为该凭据可见目录，非reasoning_effort/JSON/实际生成可用性证明；未发生成请求，未将密钥写入源码或Git。此操作为一次运维发现，未修改向导实现成自动联网。
+
+- 后续用户明确提供入口和临时凭据授权代配置；仅将其保存到持久私有目录model.json/model.env（0600），未写源码/Git/操作说明或回复。使用此前验证过的模型gpt-6.1-sol/low、30秒、实例maxCalls4，不把加载配置等同供应商可用性。停旧无模型服务后启动已加载模型配置的服务，本机ready `modelConnected:true`，鉴权status仍awake/revision1、budget全部计数0；**未发起任何真实生成或学习**。dawn-stop扩展为严格匹配这两种已知启动argv，不自动停止其他进程。
+
+- 用户要求启动曙光，模型token自行配置。检查无既有主体目录/7341服务及同名启动脚本后，在实测pi-runtime持久卷创建私有目录，learning-init显式新建v3主体dawn/曙光，总额度20、学习子额度4、仅既有合成示例pack；token-init生成0600本机服务凭据，未输出其值。
+- 以现有Node启动127.0.0.1:7341 **无模型**服务，鉴权request status及wake成功；后续独立查询awake/revision1、经历/记忆0、永久budget reserved/completed/failed/pending均0。没有say或learning-run、真实模型探测、模型配置/密钥读取。当前是本机会话脱离的运行进程，不是服务管理器或容器开机自启。
+- 持久包装入口dawn/dawn-serve/dawn-model-config/pi-dawn，shell语法检查通过；另有dawn-stop，仅在PID的完整argv仍为本次无模型服务时发送SIGTERM，实测停止后重新启动、主体awake/revision1与预算全0保留。该辅助脚本不是跨进程租约，前台模型进程仍用Ctrl+C。model.env仅有注释，model.json尚不存在；dawn-serve正常模式需用户先配置，绝不自动回退；当前使用显式--without-model。Node --env-file读取私有凭据配置，不source或执行shell。真实配置需用户填好后停止旧服务并前台启动，不并行启动同库runner。
+- pi-dawn --offline --no-session --help退出0，仅为启动包装与扩展选项冒烟，不把help当真实TUI命令注册/交流端到端证据。详细运行文件/当前PID与用户操作说明在私有目录START-HERE.md；未改Pi全局配置、安装依赖或自动提交推送这些状态更新。本轮未改源码，未重跑全量测试。
+
 ## 模型配置向导（2026-10-21）
 
 - 用户要求参考Pi模型配置新增引导；只参考安装版 `models.md` / `providers.md` / `configuration.md` / `settings.md` 与安全说明，没有读取真实Pi配置或密钥。输出复用曙光单模型格式，保持本体独立与 `--model-config` 显式启用。
