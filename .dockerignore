@@ -3,6 +3,7 @@
 !Dockerfile
 !.dockerignore
 !package.json
+!LICENSE
 !packages/
 !packages/dawn/
 !packages/dawn/package.json

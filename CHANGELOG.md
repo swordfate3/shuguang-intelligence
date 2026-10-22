@@ -20,6 +20,8 @@
 
 ### 使用与验证
 
+- 采用MIT许可证，作者swordfate3：允许商用/修改/分发，分发副本或实质性部分须保留版权和许可声明；根与两个workspace标注MIT，Docker镜像携带LICENSE。GitHub公开可见性是独立设置，不由许可证自动改变。
+
 - 新增Dockerfile/Compose与容器管理入口：镜像包含Node/Pi及薄扩展；三个命名卷持久化、非root运行、仅loopback、不挂宿主密钥或发布端口。新增Linux/WSL `bash start.sh`统一首次构建/配置/启动/进入Pi，容器setup合并显式身份预算确认、模型字段与隐藏凭据；已有数据不重复初始化、配置不覆盖、不自动wake/生成/学习。README改为最短路径，源码手动教程单独保留；当前环境无Docker，实际镜像构建/Compose/Pi镜像内复验未完成。
 
 - 新增Pi薄接口 `/dawn model` 和 `/dawn thinking` 选择器、直接参数选择、`models`显式远程目录与`model-status`安全状态；独立request客户端同样可用。服务FIFO/选择CAS，不改Pi模型或主体，不重置实例/永久额度，选择只存服务进程。目录有界且拒重定向/脱敏错误；新增off仅省略reasoning_effort，不承诺禁用思考或所有模型档位兼容。

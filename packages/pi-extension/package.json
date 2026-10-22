@@ -2,6 +2,8 @@
   "name": "@shuguang/pi-extension",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "swordfate3",
   "type": "module",
   "description": "曙光的薄 Pi 控制与交流入口，通过显式配置连接独立本机服务",
   "keywords": ["pi-package"],

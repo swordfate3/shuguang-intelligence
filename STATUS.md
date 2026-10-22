@@ -22,6 +22,8 @@
 
 ## 当前停点
 
+用户确认许可方案2：允许商用但保留作者署名/版权与许可，采用标准MIT（Copyright 2026 swordfate3），不是禁止商用或额外商用授权。新增LICENSE、根/双workspace license/author、README解释，镜像允许列表及COPY包含LICENSE。npm private:true仍保留防误发布，与GitHub可见性无关。用户同时授权仓库公开；当前浏览器未登录，配置的HTTPS credential helper无可用GitHub凭据，无GitHub管理API权限，公开操作受阻，不能把SSH推送成功当公开成功。协议文件先按授权提交推送，实际hash/同步以Git为准，不新建其他教程或安装认证工具。
+
 用户已明确授权提交并推送当前最新源码到origin/main，本轮发布内容为Docker封装、Linux一入口/统一设置及单README教程。提交前重新执行全量308/308、交流+24学习验收、四次假上游离线学习及借用宿主TS5.9.3检查均通过；敏感文件范围与暂存检查另见verification。此记录取代下文历史“未授权commit/push”停点，实际提交hash/远程同步以Git为准。收到Pi fd/ripgrep首次下载超时与曙光UNAVAILABLE反馈，均未修复/未定位，不通过本次推送冒称解决。未真实构建/部署、未调用真实供应商、未迁移数据。
 
 按用户最新要求，部署与使用教程仅保留根目录README.md：WSL/Linux Docker单一路径，包含首次设置、容器Pi/显式唤醒交流、日常启停、可选学习、更新与数据注意事项。已删除单独Docker教程与旧源码部署手册，不保留副本；清理文档索引/架构/决策引用。仅修改文档，校验README命令块语法/本地链接及删除文件引用，不执行部署/初始化/真实调用，不重跑全量或类型检查。上一代码轮308/308为历史基线，Docker实际部署/commit/push仍未执行。

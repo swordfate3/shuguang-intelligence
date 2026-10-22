@@ -1,5 +1,11 @@
 # 验证记录
 
+## MIT许可与公开设置（2026-10-22）
+
+- 用户选择“允许商用、保留署名”方案2，使用标准MIT全文（Copyright 2026 swordfate3）；根/双workspace标注MIT与作者，README说明保留版权/许可而非界面强制署名，Docker允许列表及COPY携带LICENSE。保留npm private:true，不将GitHub公开等同npm发布；第三方依赖许可不被替换。
+- 元数据JSON、MIT核心文本/作者、镜像文件包含、README链接/Bash语法、git diff --check通过；容器入口专项5/5通过。未改应用行为，不重跑全量/类型检查，不实际构建镜像；308项为前轮基线。
+- 用户授权公开仓库，但当前GitHub设置页为未登录404，浏览器显示Sign in；无gh CLI/GH_TOKEN/GITHUB_TOKEN，配置的HTTPS helper未返回可用GitHub凭据，未取得管理会话。不输出凭据或原始错误，不安装工具或索取key；未成功更改可见性。协议更新按授权commit/push，公开仍需仓库管理员在Settings的Danger Zone更改，或在可信登录环境继续。
+
 ## 最新源码提交前复验（2026-10-22）
 
 - 用户明确授权提交并推送origin/main；本轮范围为Docker封装、Linux启动与统一设置、单README教程及测试/开发文档，不含私有配置、运行数据库、凭据或其他项目。不建tag/Release，不安装依赖或运行部署。

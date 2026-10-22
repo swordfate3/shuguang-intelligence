@@ -2,6 +2,8 @@
   "name": "shuguang-intelligence",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "swordfate3",
   "type": "module",
   "description": "曙光智慧：独立数字伙伴内核与薄 Pi 交互入口",
   "workspaces": ["packages/*"],

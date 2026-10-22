@@ -18,7 +18,7 @@ RUN apt-get update \
 
 # Deliberate allow-list COPY: never bake a local model config, token, env file, DB or .git into the image.
 WORKDIR /app
-COPY package.json ./
+COPY package.json LICENSE ./
 COPY packages/dawn/package.json ./packages/dawn/
 COPY packages/dawn/src/ ./packages/dawn/src/
 COPY packages/pi-extension/package.json ./packages/pi-extension/
