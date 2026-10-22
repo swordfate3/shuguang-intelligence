@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -19,12 +19,16 @@ function fixture(t: TestContext) {
   return { dir, data, env, command };
 }
 
-test("container packaging keeps loopback private, non-root execution, fixed Pi version and allow-list context", () => {
+test("container packaging is a private non-root Dawn service with no Pi dependency or extra volumes", () => {
   const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
   const compose = readFileSync(join(root, "compose.yaml"), "utf8");
   const ignore = readFileSync(join(root, ".dockerignore"), "utf8");
   const attributes = readFileSync(join(root, ".gitattributes"), "utf8");
-  assert.match(dockerfile, /ARG PI_VERSION=1\.3\.0/);
+  assert.doesNotMatch(dockerfile, /PI_VERSION|\/opt\/pi|pi-extension|npm install|apt-get/);
+  assert.match(dockerfile, /WORKDIR \/app/);
+  assert.match(dockerfile, /COPY package\.json LICENSE/);
+  assert.match(dockerfile, /mkdir -p \/data\s*\\\r?\n\s*&& chown node:node \/data\s*\\\r?\n\s*&& chmod 700 \/data/);
+  assert.doesNotMatch(dockerfile, /\/home\/node\/\.pi|\/work/);
   assert.match(dockerfile, /USER node/);
   assert.match(dockerfile, /COPY config\/learning-pack\.example\.json/);
   assert.doesNotMatch(dockerfile, /COPY\s+\.\s|COPY\s+config\/\s/);
@@ -32,10 +36,17 @@ test("container packaging keeps loopback private, non-root execution, fixed Pi v
   assert.match(compose, /init: true/);
   assert.match(compose, /stop_grace_period: 45s/);
   assert.match(compose, /restart: "no"/);
-  for (const volume of ["dawn-data:/data", "pi-home:/home/node/.pi", "pi-work:/work"]) assert.ok(compose.includes(volume));
+  assert.deepEqual([...compose.matchAll(/^\s+- ([-a-z0-9]+):(\/[^\s]+)$/gm)].map(match => [match[1], match[2]]), [["dawn-data", "/data"]]);
+  assert.doesNotMatch(compose, /^\s*(?:PI_VERSION|pi-home|pi-work):/m);
+  assert.match(compose, /Legacy pi-home\/pi-work volumes.*never delete them automatically/);
+  assert.match(compose, /test: \["CMD", "dawn-container", "status"\]/);
+  assert.doesNotMatch(ignore, /^!packages\/pi-extension/m);
   assert.match(ignore, /^\*\*$/m);
   assert.match(ignore, /\*\*\/\*\.env/);
   assert.match(attributes, /docker\/\*\.sh text eol=lf/);
+});
+
+test("container entrypoint retains valid POSIX shell syntax", () => {
   assert.equal(spawnSync("sh", ["-n", entry]).status, 0);
 });
 
@@ -70,19 +81,24 @@ test("container setup dispatches to unified wizard and rejects unexpected argume
   assert.match(readFileSync(join(root, ".dockerignore"), "utf8"), /^!docker\/setup\.ts$/m);
 });
 
-test("container Pi command injects connection paths and extension only, never loads model credentials", t => {
+test("container rejects removed Pi interaction without running tools or initializing data", t => {
   const f = fixture(t);
   const bin = join(f.dir, "bin"); mkdirSync(bin);
-  const record = join(f.dir, "pi.json");
-  writeFileSync(join(bin, "pi"), `#!/bin/sh\nexec '${process.execPath}' -e 'require("node:fs").writeFileSync(process.env.TEST_ARGV,JSON.stringify({args:process.argv.slice(1),endpoint:process.env.DAWN_ENDPOINT,token:process.env.DAWN_TOKEN_FILE,hasKey:!!process.env.DAWN_MODEL_API_KEY}))' -- "$@"\n`, { mode: 0o700 });
-  const child = spawnSync("sh", [entry, "pi", "--offline", "--no-session"], {
-    env: { ...f.env, PATH: `${bin}:${process.env.PATH}`, TEST_ARGV: record }, encoding: "utf8", timeout: 5_000,
-  });
-  assert.equal(child.status, 0, child.stderr);
-  assert.deepEqual(JSON.parse(readFileSync(record, "utf8")), {
-    args: ["-e", join(root, "packages/pi-extension/src/index.ts"), "--offline", "--no-session"],
-    endpoint: "http://127.0.0.1:7341", token: join(f.data, "service.token"), hasKey: false,
-  });
+  const record = join(f.dir, "unexpected-tool-call");
+  for (const command of ["pi", "node"]) writeFileSync(join(bin, command), `#!/bin/sh\nprintf '%s' unexpected > "$TEST_ARGV"\nexit 99\n`, { mode: 0o700 });
+  const env = { ...f.env, PATH: `${bin}:${process.env.PATH}`, TEST_ARGV: record };
+  const help = spawnSync("sh", [entry, "help"], { env, encoding: "utf8", timeout: 5_000 });
+  assert.equal(help.status, 0, help.stderr);
+  assert.doesNotMatch(help.stdout, /^\s*pi\s/m);
+  assert.match(help.stdout, /bridge-request/);
+  for (const args of [["pi"], ["pi", "--offline", "--no-session"]]) {
+    const child = spawnSync("sh", [entry, ...args], { env, encoding: "utf8", timeout: 5_000 });
+    assert.equal(child.status, 1);
+    assert.match(child.stderr, /Unknown container command/);
+  }
+  assert.equal(existsSync(record), false, "removed Pi path must never dispatch any executable");
+  assert.equal(existsSync(join(f.data, "subject.sqlite")), false);
+  assert.equal(existsSync(join(f.data, "service.token")), false);
 });
 
 test("container serve composes exact Node env-file argv and exec forwards TERM without touching a real service", { timeout: 15_000 }, async t => {

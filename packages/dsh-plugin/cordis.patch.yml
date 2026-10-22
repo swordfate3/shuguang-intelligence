@@ -1,0 +1,11 @@
+- insert:
+    - id: shuguang-intelligence
+      name: '@shuguang/dsh-plugin'
+      config:
+        connection: docker
+        dockerProjectDir: ''
+        dockerContext: default
+        dockerProjectName: ''
+        endpoint: ''
+        tokenFile: ''
+        tokenEnv: ''

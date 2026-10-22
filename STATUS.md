@@ -1,93 +1,55 @@
 # 当前开发状态
 
-最后交接：2026-10-21。状态是交接摘要，不替代源码与重新验证；只记录真实结果，不自动执行任务。
+最后交接：2026-10-22。本文记录当前 Windows 检出事实，不把此前 Linux/私有部署的记录当成本机现状或新授权。历史证据见 [验证记录](docs/verification.md)。
 
-## 当前目标
+## 当前任务与工作树
 
-0.1.0：独立数字伙伴的六核心交流、持久记忆和**自主学习**闭环。用户已明确学习必需，不能以仅交流版宣布首版完成。源码与合成离线验收已完成；此前用户已授权本机初始化/启动并加载模型配置。新增Pi薄接口的运行中模型/thinking选择已实现并离线验证，尚未替用户重启现有服务或加载真实Pi TUI。当前模型生成兼容性、真实学习质量、长期部署及Release仍未完成。
+- 用户要求「新建一个分支，这次新增为 dsh 插件」。已从 `b446014` 创建并切换 `feat/dsh-plugin`；原工作树干净；开发阶段未commit/push。用户随后明确要求“直接更新远程分支”，本次交付授权提交并推送至origin/feat/dsh-plugin（非main、不force、不tag/包发布）；实际推送状态以Git远程ref和操作回执为准。
+- 新增第三 workspace `@shuguang/dsh-plugin`。用户最新纠正当前只用DSH交互、不用Pi；默认镜像/启动去Pi，旧Pi源码仅历史兼容保留，不纳入当前部署。保留独立 Dawn；六核心、协议v1、core schema2、DB v1/v2/v3 均未改。应用仍0.1.0，自主学习仍为首版必需项，不降级为仅聊天。
+- 用户随后确认Docker部署并同意补连接支持；已采用免端口/免token复制的显式Docker stdio方案，不是原先讨论的HTTP relay。只授权源码与合成验证，未授权正式部署或真实API。
+- 本轮完成源码与离线验证；**未安装真实 DSH 插件、未修改 profile、未部署、未初始化正式主体、未读真实凭据、未调用真实模型或学习**。新路径不再安装/启动Pi，因此不再需要其fd/ripgrep下载，但旧Pi问题本身不宣称修复；曙光UNAVAILABLE反馈仍未定位。
 
-## 已完成
+## 本轮已实现
 
-- 六核心纯规则；typed 候选、来源/作用域校验、工程情感、记忆召回、意图和受限成长规则。
-- 独立 CLI/鉴权 loopback 服务/可选 Pi 薄窗口；本体不依赖 Pi。
-- v2交流统一主体库；v3学习新库复用同一主体和总预算，保留旧格式，不自动迁移。
-- 一次资料/预算授权后自主选题 → study笔记/练习 → assessment本地独立评分 → 保存结果并推进下一目标。
-- 同主体学习记忆可在中文主题普通交流中召回；私有答案键不投影、学习不冒充聊天。
-- 重启接续、共享永久额度、显式停止/恢复、取消与迟到拒交、原子回滚、篡改和容量边界回归。
-- 开发接续文档：AGENTS / STATUS / ROADMAP 与 README 导航。
-- 详细架构图：docs/architecture.html，离线单文件展示当前源码结构、流程和边界，非运行控制台。
-- P0准备：可复现/干净安装方案、真实学习授权与判定方案、四次loopback假模型独立验收和成功/失败/取消清理回归。
-- 模型配置向导：参考Pi分层体验，独立TTY引导选择用途、入口、模型、凭据环境变量名与运行限制，预览后新建0600配置；既有交流/学习命令直接复用，不自动发现Pi或发送请求。
-- Pi薄接口 `/dawn model`、`thinking` 选择器与直接参数、`models`显式远程目录及`model-status`；曙光服务FIFO/独立选择CAS，复用原adapter不重置次数、无自动重试。仅服务进程内共享，重启读配置，off仅省略参数、不认证模型能力。
+- `packages/dsh-plugin/src/bridge.ts`：显式本机连接、复用 DawnClient/HttpDawnTransport、构造无I/O、命令先校验、最多8请求、固定脱敏错误、取消与 dispose 拒迟到，不自动启动/retry/sleep。
+- Host `shuguang/command` RPC：官方 TypertRemoteService，显式严格同版 descriptor，强制 owner；不走 DSH Agent command/Session log，不借用宿主模型或历史。
+- DSH main/sidebar 面板：状态、带revision的wake/sleep、独立输入消息、模型/thinking选择CAS、显式远程目录、取消；无自动探测，输出是文本。Client 动态注入 `remote.shuguang`，namespace撤销取消并拒迟到，恢复不自动重发。
+- 凭据仅Host侧：`endpoint` + `tokenFile`/`tokenEnv`恰一非空；Windows可用显式`SHUGUANG_*_TOKEN`变量名。原 tokenFile POSIX校验不放宽，不向浏览器传token，不发现任何 DSH/Pi/API key。
+- Node24内建类型擦除与可达模块复制构建；Client使用DSH React、Host使用同版optional SDK peers，不安装构建依赖。lib为忽略的生成物，构建复制MIT正文。
+- Docker模式：Host配置显式context/repo/原project，固定shell:false exec已运行dawn；消息stdin、单帧响应、两端schema/64KiB/期限/取消拒迟到。容器新`bridge-request`读取内部token走原HTTP，不导入model.env/开库/启动服务/发布端口，HTTP与Docker字段互斥。真实断开传播待实装。
+- DSH主入口切换：Docker无Pi安装/扩展/PATH/工作卷，Compose只挂原dawn-data，旧Pi卷不删除；entrypoint移除pi命令；start就绪后返回终端、只提示DSH，无client exec，新安装Schema/patch默认Docker。旧HTTP配置不自动迁移。
+- README整体重写为DSH主教程，不再要求进入/退出Pi；决策 D-022取代D-018～D-021中的Pi默认路径，架构/路线图/Changelog/AGENTS同步。HTML架构图尚未补DSH入口，不能冒称已展示。
 
-## 当前停点
+## 本轮验证（Windows / Node24.17.0）
 
-用户确认许可方案2：允许商用但保留作者署名/版权与许可，采用标准MIT（Copyright 2026 swordfate3），不是禁止商用或额外商用授权。新增LICENSE、根/双workspace license/author、README解释，镜像允许列表及COPY包含LICENSE。npm private:true仍保留防误发布，与GitHub可见性无关。用户同时授权仓库公开；当前浏览器未登录，配置的HTTPS credential helper无可用GitHub凭据，无GitHub管理API权限，公开操作受阻，不能把SSH推送成功当公开成功。协议文件先按授权提交推送，实际hash/同步以Git为准，不新建其他教程或安装认证工具。
-
-用户已明确授权提交并推送当前最新源码到origin/main，本轮发布内容为Docker封装、Linux一入口/统一设置及单README教程。提交前重新执行全量308/308、交流+24学习验收、四次假上游离线学习及借用宿主TS5.9.3检查均通过；敏感文件范围与暂存检查另见verification。此记录取代下文历史“未授权commit/push”停点，实际提交hash/远程同步以Git为准。收到Pi fd/ripgrep首次下载超时与曙光UNAVAILABLE反馈，均未修复/未定位，不通过本次推送冒称解决。未真实构建/部署、未调用真实供应商、未迁移数据。
-
-按用户最新要求，部署与使用教程仅保留根目录README.md：WSL/Linux Docker单一路径，包含首次设置、容器Pi/显式唤醒交流、日常启停、可选学习、更新与数据注意事项。已删除单独Docker教程与旧源码部署手册，不保留副本；清理文档索引/架构/决策引用。仅修改文档，校验README命令块语法/本地链接及删除文件引用，不执行部署/初始化/真实调用，不重跑全量或类型检查。上一代码轮308/308为历史基线，Docker实际部署/commit/push仍未执行。
-
-上一代码任务按用户的WSL/Linux Docker实际环境进一步收敛部署：新增`bash start.sh`统一首次构建/容器setup/启动就绪/进入Pi，复用已运行服务；`status/stop/build/help`同入口，无sudo/安装/自动git pull或删除卷。统一setup补缺配置、不覆盖旧主体/凭据；首次写入需确认，不自动wake/生成/学习。README为Linux使用入口，原先分散的部署教程已按最新要求合并到README并删除。最终全量308/308、setup9/9、launcher8/8、入口5/5、真PTY设置6/6与借用宿主类型检查通过；独立有限快照审查确认取消exit1/最终预览后yes门控，范围内无未关闭可证实P1/P2。详细结果见verification；本轮仍不构建/部署/迁移正式数据或push，真实Docker验证仍受环境限制。以下为前轮Docker封装记录。
-
-前一任务新增Docker部署封装：Dockerfile/Compose、非root单容器/loopback无端口发布、三个命名卷、dawn-container显式初始化/离线模型向导/隐藏key录入/serve/Pi/request/学习入口，以及Windows PowerShell→容器配置教程。首次模型配置由用户确认，启动不自动init/wake/生成/学习；不导入宿主Pi或正式主体。容器key变量限定*_API_KEY，启动前校验单绑定model.env格式，拒绝Node/OS控制环境注入。已有本机服务/数据未改，未执行安装、构建或迁移。
-
-Docker专项11项、真实PTY隐藏录入5类、完整回归290项及借用宿主类型检查的最新结果见verification；当前没有Docker CLI/socket，无法实际build/compose/Windows/Pi镜像内复验，不以宿主测试替代部署。README与Docker代码均尚未提交/推送，上一轮远程main为e4ece33。本轮不再仅为文档修改，前一段README文档阶段记录如下。
-
-前一轮仅更新README使用教程：按远程拉取→首次v3/v2分支→模型向导/私有env-file→前台服务→本地Pi包安装/连接脚本→Pi输入框选择/交流→独立CLI/学习/停止/升级排错重排，明确本机wrapper不随仓库分发。文档本地链接、15段shell语法及合成临时v3/token/env-file/加载模型/HTTP状态/唤醒/零调用预算冒烟通过；没有安装Pi包、操作正式数据或真实供应商。本轮没有源码变更，未重跑全量；279项是模型控制版本既有基线。README修改尚未提交/推送，上一轮模型控制代码已推送main的e4ece33；远程状态以Git为准。
-
-用户要求启动曙光，随后明确提供入口和临时key授权代配置。已在持久卷 `~/.local/share/shuguang-intelligence` 新建v3主体dawn/曙光（总额度20、学习子额度4、示例合成pack），生成私有服务token；启动127.0.0.1:7341无模型服务并wake，实查awake/revision1、所有调用计数0、经历/记忆0。随后已在私有目录配置用户提供的入口/凭据，初先沿用历史模型，后按用户要求鉴权GET /v1/models发现其不在列表，已私有备份并改为列表中的deepseek-v4-pro/low/30秒/maxCalls4、重启服务（模型参数/生成契约仍未真实验证）；没有真实生成、学习执行或开机自启。PID/log/本机操作说明在私有目录；重启容器需手动启动，不把PID文件当租约。
-
-持久入口 `~/.local/bin/{dawn,dawn-serve,dawn-stop,dawn-model-config,pi-dawn}` 已准备。当前model.json/model.env已私下保存并加载，dawn-stop核验完整argv后停止PID记录对应的服务，dawn-serve可前台重启。Pi包装命令--help退出0不等于真实TUI端到端验证；未自动修改Pi全局配置。详细本机交接见私有目录START-HERE.md，不读取凭据正文。
-
-本轮按用户要求实现外侧模型/thinking选择：协议/CLI/HTTP客户端、两类服务、同实例adapter目录与选择、Pi确认/选择器/取消均已接通。目录仅显式GET、1MiB/128条/ID256字符/48KiB列表/8秒期限；失败保留缓存，控制10秒仍含排队。未更改本机私有配置/数据库、重启服务、读取真实key、发真实目录或生成；已有进程仍是先前代码，使用新增命令前需手动重启，Pi需重载扩展。
-
-此前配置向导247项基线、真实PTY6项为历史结果。本轮新增模型控制/端到端回归，最终结果见下表及verification；独立有限快照审查未发现未关闭的可证实P1/P2，主补排队取消组合与UI→真实Dawn服务/SQLite/adapter闭环。标准check缺tsc限制不变，仍仅Chat Completions，无Pi配置导入、多提供商管理、OAuth或自动生成探测。此前P0已完成；依赖安装/真实学习执行仍待授权。
-
-## 最近验证基线
-
-| 项目 | 已记录结果 | 范围 |
+| 命令/范围 | 实际结果 | 限制 |
 |---|---|---|
-| `npm test` | Linux部署简化本轮308/308通过 | 含setup9/launcher8/入口5/管理7；非真实Docker构建 |
-| 模型控制专项 | 本轮通过，含最终全量 | 目录边界/取消/缓存/重定向、共享额度、CAS/FIFO/排队取消、CLI/协议/选择器 |
-| 真实PTY合成烟测 | 统一setup本轮6/6通过 | 保存/no/EOF/密钥Ctrl+C/Ctrl+D/SIGTERM；终端恢复/无回显，非Docker或Pi TUI认证 |
-| `npm run verify:acceptance` | 本轮交流与学习组合通过 | 临时库、loopback假上游，原组合范围不变 |
-| `npm run verify:learning:offline` | 本轮通过 | 两目标4调用；笔记/评分/记忆、精确冷开、完成后零调用、持久停止和清理 |
-| 新离线验收专项 | 本轮3/3通过 | 成功、假上游失败/内部取消、IPC就绪后SIGTERM |
-| 模型配置独立审查 | 未发现可证实P1/P2 | 配置/CLI与最终TTY/向导有限快照；非动态认证 |
-| 标准 `npm run check` | 失败127：tsc未找到 | 未安装开发依赖 |
-| 替代离线 TypeScript `--noEmit` | 本轮通过 | 借用宿主TS5.9.3与Node/Pi声明，覆盖根配置；非标准干净安装 |
-| 学习专项独立审查 | 既有两项P2修复并窄复核关闭 | 完整episode容量、readonly测试类型 |
-| 本轮离线验收独立审查 | 一项P2修复并窄复核关闭 | readiness后等待有界取消屏障，父延迟测试通过 |
-| 真实API | 仅此前一轮严格JSON交流及冷重启成功 | appraisal=null/candidates=[]；无真实自主学习质量证据 |
+| `node --test --test-isolation=none packages/dsh-plugin/tests/*.test.ts` | **61/61通过** | 原56项+DSH-only部署静态5项；不是实际Docker/浏览器 |
+| `node packages/dsh-plugin/build.mjs`、Client/容器桥 `node --check` | 通过，10个自有Host模块 | 无真实DSH激活/加载证明 |
+| 既有core/协议/model/Pi client/learning-core选集（关闭进程隔离） | **92/92通过** | 不包含受平台权限影响的Pi model-picker；前轮加该文件15项均mode0666失败 |
+| `check:capabilities` | 通过 | 无数据库打开/模型连接/服务启动 |
+| 容器packaging静态选集 / `docker compose config --quiet` | **1/1通过** / 通过 | 无引擎构建/部署，测试按名称仅选静态项 |
+| Git Bash `-n` 两脚本 / start help | 获准原命令沙箱外重试通过 | 原沙箱signal pipe Win32 error5；只语法/help，无Docker操作 |
+| launcher完整8项 / entrypoint完整专项 | 未通过 | spawnSync bash/script/sh受限制/工具缺失，不能用静态5项替代行为通过 |
+| `npm test` | 未通过：54个文件均在runner spawn EPERM | Windows沙箱子进程管道限制，不是54个业务断言失败 |
+| 改动前既有全量（获准沙箱外） | 多项失败并挂起，已终止 | 原POSIX文件权限、Unix shell、信号平台差异；不能借旧308项报本轮全绿 |
+| `npm run verify:acceptance` | 未通过：Acceptance failed (details omitted) | 交流阶段失败，`&&`后的学习未执行；未改脚本放宽检查 |
+| `npm run check` | 未通过：tsc未安装 | 未安装依赖、未借用编译器；不能宣称严格TS通过 |
+| `npm pack --dry-run --ignore-scripts --json` | 被沙箱拒绝写宿主npm缓存 | 未生成tarball，实际pack文件列表未验证 |
+| 真实Cordis/DSH服务测试 | 未执行成功 | 读取提取SDK遇EPERM，额外审批取消，不重试/绕过 |
 
-详细证据见 [docs/verification.md](docs/verification.md)。重排版保留9个内容章节及151个本地链接/锚点；静态唯一ID、链接与内联脚本语法检查通过。隔离浏览器检查1440/1024/768/390/320px及1440/390/320px下200%字体放大，展开完整索引后未检测到正文文字矩形交叠、节点内容溢出或页面横向溢出；主题/打印媒体/禁用JS检查通过。首版仅检查SVG画布边界未能排除图内重叠，已根据用户反馈撤换，不再作为视觉验收依据。上述视觉结果属于此前架构页重排版；本轮模型配置改动的测试/类型检查另按表中本轮结果记录。
+独立静态审查发现Client动态namespace注入遗漏，已修复；补回归时发现namespace撤销后迟到结果仍可采纳，已修复，新增Dawn HTTP业务服务集成后31项最终通过。Docker扩展独立审查范围内无确定P1/P2，独立复跑新增25项通过。本轮DSH主入口窄审无确定P1/P2，审查者独立部署静态5项/packaging1项通过。审查与模拟测试不替代真实安装。
 
-## 已知问题与阻塞
+## 运行边界与仍未验证项
 
-- Docker CLI/socket不可用；未实际build/compose/Windows终端/Pi镜像内验证，镜像供应链未完全锁digest/传递依赖，不能称可复现部署。首个有Docker环境的执行者应按README.md验证首次卷权限、配置、Pi加载、信号与重建保留。
-- 项目开发依赖未在此环境干净安装，无锁文件；标准 `npm run check` 缺本地 `tsc`。宿主替代检查不能证明依赖安装可复现，也未在最低Node24.0.0复验。
-- 尚无真实模型学习评测；1024输出token、严格JSON、模型实例maxCalls及超时均可能导致实际失败，不允许自动重试掩盖。
-- 仅本地pack前台学习；pack文本保守拒URL/路径。无任意搜索/工具、后台长驻、人格自动晋升或权重训练。
-- 2MiB快照/常规集合1000项；无自动遗忘/压缩，v3每次完整回放，长期容量/性能未验证。
-- 无跨进程独占租约、恰好一次交付或自动迁移；数据未加密、无内置删除。学习台账暂不记录逐call modelId/token用量。
-- 本机已有正式新主体及此前加载模型的进程；新增选择控制尚未重启应用到该进程。当前模型无真实生成/真实Pi TUI/RPC端到端、自动启动/长期部署、Git tag或包发布证据。用户已授权向 `https://github.com/swordfate3/shuguang-intelligence` 提交源码；项目已初始化独立Git仓库和main分支，origin使用该仓库的SSH地址。具体提交与同步状态以Git记录为准，不含父工作区其他项目及被忽略的本地配置/运行数据。
+- DSH SDK当前对照0.2.1-rc.2/Cordis4.0.5，手写strict descriptor随版本维护，SDK真实service绑定与RPC/metadata/图标/浏览器行为待授权实装。无浏览器控制或plugin_manager工具，不凭当前GUI地址宣称已安装。
+- 直接HTTP才须Host/Dawn同loopback。Docker模式经exec到容器再访问内部127.0.0.1；Compose仍不发布端口、HTTP Origin/Host不放宽，不搬运卷数据。必须更新原项目镜像包含新命令，DSH需能运行本机Docker/Compose。
+- Windows普通token文件mode0666会被既有安全校验拒绝；tokenEnv解决插件凭据读取，不代表旧Dawn正式服务初始化/文件路径已Windows端到端认证。
+- 本轮检查Compose v2.24.6-desktop.1可用，`docker --context desktop-linux info --format '{{.OSType}}'`报找不到dockerDesktopLinuxEngine管道，引擎未运行；真实exec/镜像和stdin断开传播未验证，不自动启动Docker；WSL版本可读、发行版列表E_ACCESS_DENIED，未重试提权。历史「开发环境无Docker」「已有正式主体/私有wrapper」不直接适用本机。
+- 真实模型兼容性与学习效果、干净依赖/最低Node/Docker/DSH实装复验、长期部署均未验证。旧308项和借用宿主TS5.9.3属于历史基线，不是本轮通过。
+- 自主学习仅授权本地pack的有界前台运行；无联网学习、任意工具、后台常驻或模型自批成长。pending recover前必须确认全部旧runner/同库服务停下。
+- 2MiB快照/常规集合1000项、全量回放、失败不退款、无独占租约/恰好一次/自动迁移；数据未加密、无内置删除，长期容量性能未验证。
 
 ## 下一项可执行任务
 
-**部署当前门槛：**在有Docker引擎与Compose v2的WSL/Linux验证副本中，明确允许联网构建后执行`bash start.sh`，检查首次卷权限/统一设置/取消/启动/重启接续/Pi加载及停止；采用合成主体，真实API调用另确认。此环境无Docker，不能将该步骤记为通过。现有主体迁移与本轮commit/push另行授权。
-
-**研究与复现P1：确认授权后，分别执行真实学习链路与干净环境复验。批准前不执行。**
-
-1. 按 [真实学习方案](docs/learning-evaluation.md) 确认具体endpoint/model/reasoning、合成资料披露、最多4次生成与费用、私有临时目录及留存。只证明真实链路，不宣称学习收益。
-2. 按 [可复现方案](docs/reproducibility.md) 确认持久验证副本位置、Node/npm/Pi精确版本、联网安装及脚本策略，再生成真实锁并第二空副本复验；不修改唯一工作树或宿主。
-3. 两项可分别授权；均不默许正式主体、迁移、部署或发布。若试验失败，准确记录收费/结果并停止，不自行重试。
-
-验收：实际结果与未跑项分别可追溯，更新本状态与验证记录。用户另有指令时，以最新任务为准。后续优先级见 [ROADMAP.md](ROADMAP.md)。
-
-## 下一次交接需更新
-
-- 当前目标/在做任务及涉及文件；未完成代码与代理归属。
-- 实际验证命令、结果、运行环境；未运行原因，不沿用旧测试数冒充新结果。
-- 新风险、需要的授权，以及一项具体的下一步。
-- 不复制密钥、完整环境、私人学习资料或海量日志。没有新增操作授权时，在授权边界停止。
+经用户明确授权后，在同版DSH测试profile由插件管理器安装已构建目录，以合成独立Dawn服务验证Host/Client注册、owner、RPC、取消/卸载和中英文显示；Docker先由用户启动Desktop并明确授权测试镜像/合成项目，在同本机engine、context、原项目路径下核验exec/EOF取消与服务仍存活，不能拿mock当已接通。运行环境/私有凭据来源/资料范围必须先确认；真实API、正式主体/迁移、联网安装、部署、commit/push均不能沿用旧授权。标准全量/类型检查需在合适环境重新跑，不靠弱化安全断言通过。

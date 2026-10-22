@@ -20,6 +20,12 @@
 
 ### 使用与验证
 
+- **当前入口切换为DSH，不使用Pi：**Docker默认仅运行Dawn，不安装Pi或复制其扩展，不再挂Pi会话/工作卷；原主体卷保留，旧Pi卷不自动删除。`bash start.sh`在服务就绪后返回，用户直接在DSH「曙光智慧」面板交互；新安装插件默认Docker连接。README整体重写为DSH主路径，Pi源码仅历史兼容保留。此项取代下文历史“可选DSH/进入Pi/三卷”部署描述（D-022）；不改主体、协议、学习权限或预算。真实镜像/DSH实装仍待验证。
+
+- DSH新增Docker连接模式：固定无shell的本机Docker Compose exec→容器单帧stdio桥→原私有loopback HTTP；消息不放argv，token不离开容器，不开放端口/导入模型key/改库。用户配置显式context、repo目录与原项目，容器须重建后启用新命令，插件不会自动启动或停止。新增25项Docker传输/容器桥合成测试，DSH专项共56项通过；Docker引擎当前未运行，真实exec/镜像/断开传播与DSH安装仍待验收。
+
+- 新增 `@shuguang/dsh-plugin` 可选 DSH 薄面板与 Host owner-only 桥接：状态、生命周期版本CAS、显式消息、模型/thinking选择及远程目录、取消卸载；不导入 DSH 会话/模型/凭据，不替代 Pi，不改原协议/数据库/学习权限。Windows 支持显式 `SHUGUANG_*_TOKEN` 环境变量来源，原 tokenFile 安全校验保持。Node24 无依赖构建、共享 Dawn HTTP 安全边界、31项离线专项通过。尚未在真实 DSH 安装或浏览器验证，不等于生产部署；使用与网络限制统一见 README。
+
 - 采用MIT许可证，作者swordfate3：允许商用/修改/分发，分发副本或实质性部分须保留版权和许可声明；根与两个workspace标注MIT，Docker镜像携带LICENSE。GitHub公开可见性是独立设置，不由许可证自动改变。
 
 - 新增Dockerfile/Compose与容器管理入口：镜像包含Node/Pi及薄扩展；三个命名卷持久化、非root运行、仅loopback、不挂宿主密钥或发布端口。新增Linux/WSL `bash start.sh`统一首次构建/配置/启动/进入Pi，容器setup合并显式身份预算确认、模型字段与隐藏凭据；已有数据不重复初始化、配置不覆盖、不自动wake/生成/学习。README改为最短路径，源码手动教程单独保留；当前环境无Docker，实际镜像构建/Compose/Pi镜像内复验未完成。

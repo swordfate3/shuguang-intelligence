@@ -1,5 +1,32 @@
 # 架构决策记录
 
+## D-022：当前交互改为 DSH 插件，移除默认 Pi 运行路径
+
+- **用户纠正：**此前将DSH作为Pi之外的可选窗口不符合最新要求。当前交互正式改为DSH插件，不使用Pi；Docker仍只承载独立主体服务，不把DSH当主体/数据库所有者。不把此要求扩张为自动读取DSH模型/历史/凭据或后台活动授权。
+- **取代范围：**D-018/D-019的镜像安装Pi、三卷和start后进入Pi，D-020/D-021的“Pi原运行路径保留/可选DSH”描述均由本项取代；其他身份、数据、确认、网络、预算与学习边界保留。旧决策与验证作为历史，不直接改写成当前事实。
+- **运行：**Dockerfile不安装Pi/额外apt或npm依赖、不复制Pi扩展，只保留Node基础与Dawn/scripts/sample/MIT。Compose仅挂原dawn-data，旧Pi卷不删除、不挂载/迁移。entrypoint去pi命令；start.sh在setup/up/status就绪后输出DSH说明并返回，无交互客户端exec；运行中不自动升级，显式stop/build/start切换旧镜像。
+- **插件：**新安装Schema与bundle patch默认docker（需用户显式填repo/context/原project），旧HTTP配置不自动迁移；Bridge省略connection的旧调用保留HTTP兼容，不改变已有测试/客户端。消息在DSH曙光面板，不截获DSH主Agent输入；Docker stdio/owner门禁/无token导出保持D-021。
+- **源码兼容：**暂保留packages/pi-extension及原回归，避免为交互切换无谓删除兼容资产；不在默认镜像、启动、教程或实际使用路径。此保留不是继续让用户用Pi；未来删除workspace需单独范围，不删除用户旧卷或会话数据。
+- **验证与文档：**README整体改为DSH使用路径，历史HTML架构图仍未跟进，不当当前部署依据。相关静态/流协议验证与shell执行结果分别记录，不用mock冒充Docker/DSH实装。不部署/安装/正式数据/模型/commit/push。
+
+## D-021：Docker 模式走显式 exec stdio，不开放控制端口或导出 token
+
+- **授权与取舍：**用户确认Docker部署，并同意补Windows DSH连接源码与合成测试。比较独立HTTP relay后，选择更少权限面/运维项的Docker stdio：避免新增0.0.0.0监听、host ports、桥token配对、DPAPI启动器和sidecar生命周期。此项扩展D-020：HTTP模式仍要求同loopback，Docker模式通过已有本机Docker控制通道进入容器，不要求DSH与Dawn共享loopback。
+- **固定路径：**owner配置`connection: docker`、Host绝对repo目录、显式Docker context（缺省固定default）和可选原Compose项目名；Host仅shell:false执行固定`docker --context … compose --project-directory … [--project-name …] -f …/compose.yaml exec -T dawn dawn-container bridge-request`。不运行up/run/build/stop、任意shell或命令，不激活探测。项目目录/context只在Host配置，不由Client RPC/模型传入；目录作为单独argv，不包含消息或token。
+- **容器职责：**新bridge-request仅从stdin接收一帧有界strict DawnRequest，用私有目录中的service.token和既有HttpDawnTransport访问固定127.0.0.1:7341。stdout仅一帧compact DawnResponse，应用error仍是合法响应并exit0；transport/协议失败固定stderr+exit1。无model.env导入、不打开DB、不改协议/HTTP绑定/Host/Origin或Compose。镜像必须显式重建包含新命令，原Pi/服务启动流程不变。
+- **期限与取消：**Host保持stdin打开，EOF/流断开使容器桥abort内部HTTP；Host控制10s/say40s包含启动/序列化开销，容器初始帧10s，解析后按命令总预算重新计时，Dawn原35s服务期限保持。双方拒迟到/关联错配/错误UTF8/多帧/超64KiB（响应含末尾LF），不重试。Host销毁流并只终止本次CLI，不停止服务。Docker真实断开如何传播尚需实装，不能把kill docker.exe等同已杀容器请求；失败可能已提交/计费。
+- **信任边界：**Docker权限等价高权限本机能力，daemon/CLI/Compose/PATH/context必须可信，插件不沙箱化它们。显式context可避免环境变量意外选引擎，但其实际配置可能是remote，要求用户选择本地。项目名建议明确指定已运行实例；不启动新容器，不复制或迁移任何卷来修复连接。
+- **验证边界：**合成fake子进程双向流+真实HTTP验证stdio两端契约，不启动Docker/正式数据；本机Desktop引擎未运行，实际镜像、Windows/WSL同引擎、exec/取消/端到端DSH仍未证明。学习前仍停所有同库服务与旧runner，插件不会从停止容器自动恢复或偷偷启动学习。教程仅根README第6节。
+
+## D-020：DSH 作为独立薄窗口，不成为主体或模型所有者
+
+- **范围：**按用户最新要求创建 `feat/dsh-plugin`，新增第三个 workspace `@shuguang/dsh-plugin`。Pi 原入口保留；DSH → Dawn，core/runtime 不反向依赖 DSH。应用/协议/schema/数据库版本均不变，不新增学习 HTTP 或后台活动。
+- **接入：**当前安装版 DSH 0.2.1-rc.2 使用 Cordis Host 插件与 Client 懒工厂。采用独立 `shuguang/command` Typert RPC 和 main/sidebar 面板；不使用 DSH Agent slash command（该路径会记 Session log），不调用 DSH 模型、不导入会话或凭据。Host 用官方 TypertRemoteService；严格 descriptor 是显式维护的同版契约，不冒称生成物。Client 挂载后单独注入 `remote.shuguang`，依赖撤销取消并拒迟到结果。
+- **网络与凭据：**浏览器不直接 fetch Dawn，保留 Dawn 对 Origin 的拒绝；Host 复用既有 HttpDawnTransport 的精确 loopback/Host、鉴权、有界响应、关联 ID、超时、拒重定向和取消。RPC 强制 owner，不能给任意浏览器调用方选 endpoint/token。只命令时读取配置的私有 tokenFile 或 `SHUGUANG_*_TOKEN` 环境变量（唯一来源）；Windows 用显式 tokenEnv 不放宽 POSIX 文件校验。配置和进程环境由用户注入，插件不发现秘密或自动安装/启动。
+- **行为：**面板挂载不探测服务；生成与远程模型目录操作都有可见披露。主体 revision 和选择 selectionRevision 分离；不自动重试、退款、重置预算或迁移。关闭面板/卸载只取消本客户端，不 sleep/关闭独立主体。最多8个并行请求，错误固定脱敏。学习仍在原授权本地 pack 的前台入口。
+- **分发：**Node24 内建类型擦除构建，无新增运行依赖；复制可达 Dawn 客户端模块到插件 lib，浏览器使用 DSH 的 React，Host SDK 用同版 optional peer 与 DSH runtime resolution。JS 适配层显式独立于 TypeScript Bridge，根 allowJs 允许测试导入 JS，但 checkJs=false 不等于适配层已严格类型验证。安装/更新交给插件管理器，不手写 profile，不宣称当前 GUI HMR 生效。
+- **部署限制：**DSH Host 与 Dawn 必须同 loopback 命名空间。现有 Compose 无宿主端口，不能直接供宿主插件连接；不为此开放0.0.0.0、改 Origin 或搬运容器数据。安装 SDK 实证、浏览器/实际配置与正式数据部署需单独授权验证，本轮仅源码与合成离线测试。该项扩展 D-019 的单教程内容：仍只 README 维护用户教程，但按最新要求新增可选 DSH 安装节，不恢复已删除手册。
+
 ## D-019：WSL/Linux 单入口启动与显式首次设置
 
 - **动机：**用户实际在WSL Linux终端用Docker；把进入Bash、init、model-config、credentials、up、exec拆开仍过于繁琐。以`bash start.sh`作为正常入口，不新增Web后台或重构主体。

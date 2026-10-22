@@ -20,8 +20,8 @@ Dawn container (no automatic initialization, wake, generation or learning)
   model-config                                  Offline interactive wizard; new model.json only
   credentials                                   Hidden interactive key entry; new model.env only
   serve                                         Foreground model service; fails if setup is missing
-  pi [Pi arguments...]                           Pi + Dawn extension + fixed loopback connection
   request <command...>                           Standalone control client (status/wake/sleep/say/model controls)
+  bridge-request                                One bounded JSON request over stdin/stdout for DSH; no token output
   status | budget | learning-status              Safe queries (budget/learning-status open existing DB)
   learning-run                                  Foreground approved learning; stop same-DB serve first
   learning-stop                                 Permanently revoke learning authorization
@@ -60,14 +60,12 @@ HELP
     exec node --env-file="$DATA/model.env" "$MAIN" serve --subject-db "$DATA/subject.sqlite" \
       --token-file "$DATA/service.token" --port 7341 --model-config "$DATA/model.json"
     ;;
-  pi)
-    # Pi receives a token PATH, never Dawn's model credentials. Explicit -e works with a fresh Pi home volume.
-    export DAWN_ENDPOINT=http://127.0.0.1:7341
-    export DAWN_TOKEN_FILE="$DATA/service.token"
-    exec pi -e "$APP/packages/pi-extension/src/index.ts" "$@"
-    ;;
   request)
     exec node "$MAIN" request --endpoint http://127.0.0.1:7341 --token-file "$DATA/service.token" -- "$@"
+    ;;
+  bridge-request)
+    [ "$#" -eq 0 ] || exit 1
+    exec node "$APP/docker/bridge-request.ts"
     ;;
   status)
     [ "$#" -eq 0 ] || exit 1

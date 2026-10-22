@@ -9,16 +9,13 @@
 !packages/dawn/package.json
 !packages/dawn/src/
 !packages/dawn/src/**
-!packages/pi-extension/
-!packages/pi-extension/package.json
-!packages/pi-extension/src/
-!packages/pi-extension/src/**
 !config/
 !config/learning-pack.example.json
 !docker/
 !docker/entrypoint.sh
 !docker/manage.ts
 !docker/setup.ts
+!docker/bridge-request.ts
 # Even allow-listed source directories may never contribute private/generated files.
 **/.env
 **/.env.*

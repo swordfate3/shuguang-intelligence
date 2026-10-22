@@ -1,0 +1,2 @@
+# Reproducible runtime artifacts; build before linking the bundle in DSH.
+lib/

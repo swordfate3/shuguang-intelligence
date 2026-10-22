@@ -34,7 +34,9 @@ process.exit(0);
   const run = (args: string[], extra: NodeJS.ProcessEnv = {}, tty = false) => {
     const command = tty ? "script" : "bash";
     const argv = tty ? ["-q", "-e", "-c", `bash '${script}' ${args.join(" ")}`, "/dev/null"] : [script, ...args];
-    return spawnSync(command, argv, { cwd: dir, env: { ...env, ...extra }, input: "", encoding: "utf8", timeout: 20_000 });
+    const result = spawnSync(command, argv, { cwd: dir, env: { ...env, ...extra }, input: "", encoding: "utf8", timeout: 20_000 });
+    assert.ifError(result.error); // A failed spawn is not a valid negative launcher result.
+    return result;
   };
   return { run, calls };
 }
@@ -42,7 +44,10 @@ function commands(calls: string[][]) { return calls.filter(a => a[0] === "compos
 
 test("Linux launcher help/unknown arguments do not touch Docker", t => {
   const f = fixture(t);
-  assert.equal(f.run(["help"]).status, 0);
+  const help = f.run(["help"]);
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /DSH/);
+  assert.doesNotMatch(help.stdout, /Pi|\/dawn/);
   assert.notEqual(f.run(["unknown"]).status, 0);
   assert.notEqual(f.run(["stop", "extra"]).status, 0);
   assert.deepEqual(f.calls(), []);
@@ -62,43 +67,55 @@ test("launcher status/stop use only read or normal stop commands and never remov
 });
 test("explicit build refuses a running service and never pulls Git or changes data", t => {
   const f = fixture(t);
-  assert.notEqual(f.run(["build"], { TEST_RUNNING: "1" }).status, 0);
+  const running = f.run(["build"], { TEST_RUNNING: "1" });
+  assert.notEqual(running.status, 0);
+  assert.match(running.stderr, /DSH/);
+  assert.doesNotMatch(running.stderr, /Pi/);
   assert.equal(f.run(["build"]).status, 0);
   assert.equal(commands(f.calls()).filter(c => c[0] === "build").length, 1);
   assert.ok(!commands(f.calls()).some(c => ["up", "run", "down", "rm"].includes(c[0]!)));
 });
-test("TTY first start builds missing image, configures before up, checks ready then opens Pi", t => {
+test("TTY first start builds missing image, configures before up and returns for DSH interaction without launching a client", t => {
   const f = fixture(t);
   const result = f.run([], { TEST_IMAGE: "0" }, true);
   assert.equal(result.status, 0, result.stderr + result.stdout);
   assert.deepEqual(commands(f.calls()), [
     ["ps", "--status", "running", "-q", "dawn"], ["config", "--images"], ["build", "dawn"],
     ["run", "--rm", "--no-deps", "dawn", "setup"], ["up", "-d", "--no-build", "dawn"],
-    ["exec", "-T", "dawn", "dawn-container", "status"], ["exec", "dawn", "dawn-container", "pi"],
+    ["exec", "-T", "dawn", "dawn-container", "status"],
   ]);
+  assert.match(result.stdout, /DSH/);
+  assert.match(result.stdout, /查询状态/);
+  assert.doesNotMatch(result.stdout, /Pi|\/dawn/);
 });
-test("existing image is reused and failed setup prevents up/Pi without deletion", t => {
+test("existing image is reused and failed setup prevents service startup without deletion", t => {
   const f = fixture(t);
   assert.notEqual(f.run([], { TEST_SETUP_FAIL: "1" }, true).status, 0);
   assert.ok(commands(f.calls()).some(c => c[0] === "run"));
   assert.ok(!commands(f.calls()).some(c => ["up", "exec", "build", "down", "rm"].includes(c[0]!)));
 });
-test("stopped configured installation reuses image and running service connects without setup", t => {
+test("stopped configured installation reuses image and running service returns for DSH without setup or client exec", t => {
   const f = fixture(t);
   assert.equal(f.run([], {}, true).status, 0);
   assert.ok(!commands(f.calls()).some(c => c[0] === "build"));
   const before = f.calls().length;
-  assert.equal(f.run([], { TEST_RUNNING: "1" }, true).status, 0);
+  const running = f.run([], { TEST_RUNNING: "1" }, true);
+  assert.equal(running.status, 0);
+  assert.match(running.stdout, /DSH/);
+  assert.doesNotMatch(running.stdout, /Pi|\/dawn/);
   assert.deepEqual(commands(f.calls().slice(before)), [
     ["ps", "--status", "running", "-q", "dawn"], ["exec", "-T", "dawn", "dawn-container", "status"],
-    ["exec", "dawn", "dawn-container", "pi"],
   ]);
 });
 
-test("running service bypasses build/setup and failed readiness is bounded without opening Pi", t => {
+test("running service bypasses build/setup and failed readiness is bounded without any interactive client", t => {
   const f = fixture(t);
-  assert.notEqual(f.run([], { TEST_RUNNING: "1", TEST_NOT_READY: "1" }, true).status, 0);
+  const result = f.run([], { TEST_RUNNING: "1", TEST_NOT_READY: "1" }, true);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /DSH/);
+  assert.doesNotMatch(result.stdout + result.stderr, /Pi|\/dawn/);
   const calls = commands(f.calls());
   assert.equal(calls.filter(c => c[0] === "exec").length, 5);
   assert.ok(!calls.some(c => ["build", "run", "up"].includes(c[0]!) || c.at(-1) === "pi"));
+  assert.ok(calls.filter(c => c[0] === "exec").every(c => JSON.stringify(c) === JSON.stringify(["exec", "-T", "dawn", "dawn-container", "status"])));
 });

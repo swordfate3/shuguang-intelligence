@@ -1,5 +1,98 @@
 # 验证记录
 
+## 功能分支提交/推送授权（2026-10-22）
+
+用户明确要求“直接更新远程分支”，授权将已验证的DSH插件/Docker连接及DSH主入口改动提交并推送origin/feat/dsh-plugin，不合并main、不force、不部署或发布包。下文“未commit/push”描述的是此前开发阶段，不代表本次操作仍未授权。提交前复核待提交路径、排除lib/凭据/数据库与下载产物、检查空白与DSH回归；真实部署和全量/类型检查限制不因Git推送消失。最终提交ID和远程一致性由Git回执确认。
+
+## 当前交互切为DSH插件，不使用Pi（2026-10-22，Windows）
+
+- 用户纠正“目前改为和DSH交互，不使用Pi，让他作为DSH插件”。D-022覆盖此前可选DSH/默认Pi的设计。只改源码/测试/文档，未安装profile/正式主体/读取真实token/模型key/部署/调用真实模型或学习、commit/push。
+- Dockerfile去Pi版本/安装/npm/apt/git/PATH、Pi扩展COPY与工作目录，只保留Node基础+Dawn/scripts/sample/MIT，非root /data0700不变。Compose去Pi args/卷，仅原dawn-data，旧Pi卷不挂也不删。entrypoint去pi分支/help，其余setup/init/serve/bridge/learning门控未改。
+- start保留TTY/显式setup→up/5次鉴权status、运行中禁build、无删除/自动wake/生成/学习；就绪后输出DSH说明并exit0，没有交互客户端exec。新DSH Schema与bundle patch默认docker，旧HTTP配置不迁移，Bridge内部缺省HTTP只兼容旧直接调用。历史Pi源码与回归保留，但不入镜像/启动/当前教程。
+- README整体DSH主路径，Docker仅服务，无需Pi登录、/dawn命令或/quit；说明原项目stop/build/start更新、同原dawn-data、旧卷保留、插件单独构建/安装/context/project/status，学习仍显式前台授权。
+
+### 实际通过
+
+1. `node --test --test-isolation=none packages/dsh-plugin/tests/*.test.ts` **61/61通过**：前轮56项重跑+新增5项跨平台部署静态契约（镜像无Pi、仅原卷/no ports、启动就绪返回/无client exec、entrypoint门控与去Pi、新安装默认Docker+README主路径）。静态检查不冒充真正shell行为。
+2. `node --test --test-isolation=none --test-name-pattern='container packaging' packages/dawn/tests/container-entrypoint.test.ts` **1/1通过**，仅选择无需shell的packaging项，不是整个文件通过。原shell行为断言保留，Pi分支测试改为拒绝pi且无工具/初始化；新增单独shell语法项。
+3. `npm run build:dsh`通过，10个自有Host模块；Client产物`node --check`通过。`docker compose config --quiet`通过（只本地配置解析，不联系/启动引擎）。
+4. Git Bash两脚本`-n`+start help：首次沙箱内报`couldn't create signal pipe, Win32 error 5`；获准**完全相同**命令沙箱外重试通过，输出DSH服务就绪后返回帮助。命令没有调用Docker、初始化或服务，额外授权只用于这次语法/help，不扩展到SDK/全量。
+5. 原可移植core/协议/model/Pi client兼容/learning-core选集 **92/92通过**，`check:capabilities`通过且databaseOpened/modelConnected/serverStarted均false。未改core/DB/HTTP/预算/资料授权。
+6. 收尾23个本地文档路径/DSH教程一致性、Compose配置及git diff --check通过；core/Pi源码/setup/manage差异为零。README/STATUS有autocrlf提示但无空白错误。
+7. 独立只读审查指定部署切换范围无确定P1/P2；审查者独立复跑部署静态5/5、packaging1/1，不将主代理其余56算独立复验。
+
+### 未通过与限制
+
+- 子代理实际执行完整launcher8项，全部spawnSync bash/script EPERM；fixture补assert.ifError，避免把spawn失败误作负例通过。完整entrypoint shell专项受sh缺失/管道/Windows POSIX权限限制，未获得完整通过；不因测试难跑删安全断言或平台skip。已获准语法/help只补语法证据，不能替代TTY/假Docker行为。
+- 本轮`npm test`54个文件均runner spawn EPERM，业务断言未执行；`npm run check`仍tsc未找到，`verify:acceptance`交流阶段`Acceptance failed (details omitted)`，学习由&&短路未跑。不报告全量/严格类型/学习端到端通过，不自动安装依赖。
+- Docker Linux引擎前轮未运行，未实际镜像构建/Compose部署/Windows与WSL同engine/exec取消；DSH实际Host激活/Client注册/显示/交互仍未验证。没有启动替代GUI或承诺HMR。旧镜像须用户显式重建，代码更新不等于当前容器已经无Pi。
+- 保留旧Pi源码/旧卷不是继续使用Pi；不主动删除用户兼容数据。历史HTML架构页/旧决策及下文旧Pi运行记录未全部重绘，仅作为历史，以当前README/ARCHITECTURE/D-022/STATUS为准。
+
+## Docker → DSH stdio 连接扩展（2026-10-22，Windows）
+
+### 授权与源码
+
+- 用户确认Docker部署并同意继续补源码/合成验证。仍在`feat/dsh-plugin`，保留全部既有未提交改动；没有安装插件/profile、启动正式服务/主体、读取真实凭据或调用真实API、commit/push。
+- 比较原HTTP relay后选择免端口方案（D-021）：Host固定无shell `docker --context <explicit> compose --project-directory <absolute> [--project-name <existing>] -f <dir>/compose.yaml exec -T dawn dawn-container bridge-request`，消息走stdin，token留容器。没有任意shell/自启动up/run/build/stop，没有Compose端口/绑定/Origin变更。
+- 新`docker/bridge-request.ts`有界单行请求→内部私有token+原HttpDawnTransport→单行有界响应；entrypoint新增固定命令、.dockerignore显式允许源码进入镜像。容器桥不导入model.env，不打开DB。SDK Host owner门禁保持；HTTP与Docker配置互斥，不降级/猜测凭据。目录/context/项目为可信Host配置，不是RPC入参。
+
+### 实际验证
+
+- `node --test --test-isolation=none packages/dsh-plugin/tests/*.test.ts` **56/56通过**：原31项+新增Docker transport15项+容器桥/跨端组合10项。fake子进程只是EventEmitter/PassThrough，并非启动Docker；真实loopback HTTP使用合成token。
+- Docker传输覆盖：构造0I/O/预取消0spawn、恶意目录独立argv且shell:false、显式context覆盖环境误选/可选项目名、stdin不end、单帧fatalUTF8/BOM/CR拒绝、64KiB含LF边界、响应类型/请求ID、合法application error不被当transport失败、stderr有界丢弃、进程/流错误/非零退出脱敏、取消/迟到/10s与40s超时不重试。mock timer验证期限，不消耗40秒。
+- 容器桥覆盖：strict schema/分块单帧/非法UTF8/CR/BOM/超长/附加帧拒绝，EOF/end/close/error与预取消，handler异常/错ID/超长无stdout，输出错误的迟到error事件安全收敛；65535字节body+LF可输出、65536字节body+LF被拒，避免一字节跨端差异。生产只处理一个请求，stdin保持打开等结果，EOF取消，控制10s/交流40s总限。
+- 跨端组合：Host DockerTransport→fake双向stdio→真实container handler→真实鉴权HTTP→合成响应成功，错token无业务dispatch；容器packaging静态验证固定分支/no env injection/no ports。Bridge Docker模式0Host token/env读取、混合/非法配置拒绝。不能将其当真实exec生命周期验证。
+- `npm run build:dsh`通过（10个可达自有Host模块），`node --check docker/bridge-request.ts`、Client产物语法通过。生成lib已包含Docker transport，不包含容器管理脚本或凭据；容器脚本从镜像allow-list单独提供。
+- 原纯领域/模型/协议/客户端/学习规则选集合跑 **92/92通过**：`node --test --test-isolation=none packages/dawn/tests/core-*.test.ts packages/dawn/tests/deliberation.test.ts packages/dawn/tests/protocol.test.ts packages/dawn/tests/state.test.ts packages/dawn/tests/validation.test.ts packages/dawn/tests/model.test.ts packages/pi-extension/tests/client.test.ts packages/dawn/tests/learning-core.test.ts`。`check:capabilities`通过，无打开库/模型连接/服务启动。
+
+- 最终再次56/56与构建/语法通过；7份改动文档18个本地路径和两种locale键集合检查通过，git diff --check通过（STATUS有autocrlf提示）。
+- 独立只读安全审查对指定Docker路径未发现可证实P1/P2；审查者独立重跑新增25项通过，未冒称独立复跑原31项。core/Pi源码、Compose、Dockerfile差异为零，原权限与HTTP校验保持。
+
+### 未通过与未验证
+
+- 本轮再次`npm test`53个文件均runner spawn EPERM，业务断言未执行；不提权重跑前轮已知会挂的Unix/权限全量，不skip/删校验。`npm run check`仍tsc未安装；`verify:acceptance`交流阶段固定失败提示，学习由&&短路，未取得全量/严格类型/完整学习通过证明。
+- `docker compose version`为v2.24.6-desktop.1；`docker --context desktop-linux info --format '{{.OSType}}'`找不到dockerDesktopLinuxEngine管道。Docker引擎未运行，未启动引擎/构建镜像或部署。真实Compose exec、Windows/WSL同engine与原project、PATH/Windows UNC目录、stdout exit/EOF取消传播均未实装。Docker access高权限且用户context可配置remote，只文档限制本地可信，不冒称代码能证明daemon物理位置。
+- 杀docker CLI不保证立刻杀容器exec；Host拒迟到，容器EOF断开abort及硬截止是源码保证，Docker通道实际传递是待验收项。失败/取消可已收费或提交，不重发。
+- README第6节补原项目stop/build/start更新命令、Windows context/project路径及安全status核对，不需要token导出。真实SDK/GUI/图标/安装、正式数据、真实模型和网络构建仍需另行授权。前轮31项证据保留在下节，不把旧同loopback限制套到新增Docker模式。
+
+## DSH 薄插件分支（2026-10-22，Windows）
+
+### 范围与来源
+
+- 按用户要求从 `b446014` 创建 `feat/dsh-plugin`；第三 workspace `packages/dsh-plugin`，既有 Dawn/Pi 源码与测试未修改，协议/领域/DB版本保持。修改根测试脚本纳入DSH；allowJs/checkJs=false允许TS测试导入JS适配层，**没有宣称JS/TS已过严格编译**。
+- 对照安装版DSH 0.2.1-rc.2/Cordis4.0.5开发文件：官方Host apply/Config、TypertRemoteService、registry严格codec契约、Remote $mount与动态namespace注入、main/sidebar slots、locale、bundle manifest与本地安装流程。安装封装为ASAR，经授权仅提取公开开发文件至系统临时目录，没有改安装目录/profile或读取真实配置。
+- 方案为 Client面板 → owner-only独立Typert RPC → Host DawnBridge → 既有HttpDawnTransport。保留Dawn对Origin/Host/loopback的保护，不直接从浏览器fetch、不把token传客户端、不走会记Session log的DSH slash command、不借宿主模型/历史。
+
+### 已验证
+
+环境：Windows，Node24.17.0，无新依赖安装，无真实供应商请求。
+
+1. `node --test --test-isolation=none packages/dsh-plugin/tests/*.test.ts` **31/31通过**。关闭runner进程隔离是避免Windows沙箱spawn管道限制；不删除/跳过业务断言。
+   - 17项Bridge：构造/非法命令0凭据I/O、唯一显式tokenFile/tokenEnv来源、严格loopback、env名字和值、错token/重定向/错误响应无重试且脱敏、请求字段白名单、主体与模型CAS、40s/10s既有transport边界、8请求容量、预取消/迟到/并发dispose/服务存活。
+   - Windows合成0600 token文件实际stat mode=0666，默认readTokenFile正确拒绝；HTTP fixture用显式注入合成token，不修改既有安全校验。默认tokenEnv reader另用临时合成`SHUGUANG_TEST_SERVICE_TOKEN`端到端读请求、finally恢复原值，未读取真实token。
+   - 10项Client：顺序fake React hooks执行实际Panel渲染/handler；显式状态/生命周期CAS、仅本条say且清旧revision、独立模型CAS/显式目录、busy双击门控、错误无原文、取消/unmount拒迟到、动态namespace撤销/恢复、插件dispose。原ctx的namespace getter严格抛，只有`ctx.inject(['remote.shuguang'])`子ctx可调用，避免plain-object mock掩盖SDK约束。
+   - 4项契约/构建与Dawn集成：严格RPC入参/UTF8 64KiB结果边界、Host owner拒绝/无激活I/O/dispose、临时目录构建9个可达自有模块/无相邻源码依赖、Client懒工厂只require宿主React、metadata/locale键集合/图标格式标志、MIT正文复制与生命周期。另外通过Host适配器+默认tokenEnv reader→真实Dawn HTTP→DawnService/InMemoryStateStore验证status/wake/CAS conflict/say未实现/卸载后服务仍awake。该集成只mock SDK Service/registry，不mock Dawn HTTP/协议/业务服务，但使用legacy合成主体，不代表六核心交流/真实模型/真实Cordis激活。
+2. `npm run build:dsh` 通过；`node --check packages/dsh-plugin/lib/client.js`通过。产物Git忽略；无联网/CDN/额外React实例，Host SDK以同版optional peer由DSH解析。构建用Node实验性stripTypeScriptTypes，有正常ExperimentalWarning。
+3. 既有可移植选集 **86/86通过**：`node --test --test-isolation=none packages/dawn/tests/core-*.test.ts packages/dawn/tests/deliberation.test.ts packages/dawn/tests/protocol.test.ts packages/dawn/tests/state.test.ts packages/dawn/tests/validation.test.ts packages/dawn/tests/model.test.ts packages/pi-extension/tests/client.test.ts`。
+4. `node --test --test-isolation=none packages/dawn/tests/learning-core.test.ts` **6/6通过**（资料/评分/答案隔离纯规则，不是学习完整链路）。`npm run check:capabilities`通过，明确databaseOpened/modelConnected/serverStarted均false。
+5. 独立只读审查发现Client只$mount却未注入namespace的P1，已补dependent inject。新增撤销测试又发现available信号取消后迟到成功仍可能被采纳，现call在await前后复查组合信号，两项最终回归通过，独立静态窄审确认原P1关闭且范围内无新确定P1/P2。未用弱化断言或自动retry掩盖。
+
+### 未通过、未运行与权限边界
+
+- 改动前全量最初48个文件全部runner spawn EPERM；获准沙箱外重跑后原SQLite/凭据POSIX权限、Unix shell/TTY/信号测试多项失败并挂起，已取消该后台作业。集成后`npm test`51文件仍全在runner spawn EPERM，未执行到业务断言，不报告“本轮全量通过”。未更改旧测试做平台skip。
+- 既有选集加Pi model-picker共101项的尝试：86通过、15项在其原fixture tokenFile POSIX权限检查失败；随后单独重跑不依赖该文件fixture的86项通过。tokenEnv只解决新DSH插件凭据源，不冒充旧Dawn服务已完整支持Windows。
+- `npm run verify:acceptance`在交流阶段报`Acceptance failed (details omitted)`，学习部分由`&&`短路未执行；原脚本含私有文件/SQLite安全要求，未为本机放宽。自主学习全链路、Docker、Pi真实TUI未复验。
+- `npm run check`失败：tsc未找到。未安装开发依赖，未借宿主编译器，因此新增严格TS与JS适配层类型未验证；旧TS5.9.3替代通过不算本轮证据。
+- `npm pack --dry-run --ignore-scripts --json`被沙箱拒绝写用户npm缓存，未重试绕过/未产生tarball；分发实际打包列表未验证。构建/静态files允许列表及lib/LICENSE已检查，但不把它等同真实pack成功。
+- 独立真实Cordis/Protocol验证脚本读取已提取SDK时EPERM；主代理申请相同命令额外权限被取消，**没有运行成功、没有绕过或再重试**。既有SDK静态源码与严格模拟是证据，实际service绑定/dispatch和浏览器渲染仍未证明。
+- 未安装DSH bundle/修改profile/启动替代服务器或watcher，没有当前GUI URL上的验证，不能承诺HMR。真实metadata/图标显示、实际Remote与theme/布局需要用户在同版测试profile安装后核对。
+- 未读取实际model.env/token、调用真实API或目录、初始化/迁移正式库、部署后台服务、commit/push/tag/发布。后续实装需确认DSH Host与Dawn同loopback网络命名空间；现有Docker Compose不发布端口，不改变其保护来凑连接。
+
+- 收尾校验：8份改动文档的22个本地Markdown路径有效，根/workspace版本与test纳入关系通过，SVG XML与<256KiB检查通过；只证明资源结构，不声称视觉渲染成功。`git diff --check`通过（STATUS有Git autocrlf提示，无空白错误）。
+- 临时清理：新专项的mkdtemp fixtures均finally清理。SDK研究提取目录`C:\Users\fate\AppData\Local\Temp\dsh-plugin-contract-0uejkk8t`删除遭权限拒绝，未绕过；子代理临时目录`C:\Users\fate\AppData\Local\Temp\dsh-7AicYB\dsh-plugin-contract-xbwshpgy`（早期空目录）及`dsh-sdk-verify-080085b648ed4693b8dd0c800f285e08`（未成功运行的验证脚本）同样保留待用户授权清理。均无用户凭据/数据，不在源码或分发包内。
+
+历史各轮的308项、Linux部署记录及私有本机路径只说明当时环境，不覆盖上述当前结果。
+
 ## MIT许可与公开设置（2026-10-22）
 
 - 用户选择“允许商用、保留署名”方案2，使用标准MIT全文（Copyright 2026 swordfate3）；根/双workspace标注MIT与作者，README说明保留版权/许可而非界面强制署名，Docker允许列表及COPY携带LICENSE。保留npm private:true，不将GitHub公开等同npm发布；第三方依赖许可不被替换。

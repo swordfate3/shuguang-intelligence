@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        PI_VERSION: "1.4.0"
     init: true
     command: ["serve"]
     # Explicit up/stop lifecycle. Never restart an unconfigured or failing model service in a loop.
@@ -16,9 +14,8 @@ services:
       - ALL
     volumes:
       - dawn-data:/data
-      - pi-home:/home/node/.pi
-      - pi-work:/work
-    # No published ports, host network, Docker socket, host keys or host Pi settings.
+    # No published ports, host network, Docker socket or host credentials.
+    # Legacy pi-home/pi-work volumes are no longer mounted; never delete them automatically.
     healthcheck:
       test: ["CMD", "dawn-container", "status"]
       interval: 30s
@@ -28,5 +25,3 @@ services:
 
 volumes:
   dawn-data:
-  pi-home:
-  pi-work:

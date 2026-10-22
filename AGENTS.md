@@ -4,7 +4,7 @@
 
 ## 产品目标与不可降级项
 
-- 曙光是独立于 Pi、单次模型调用和开发会话的数字伙伴；Pi 只是可选薄窗口。
+- 曙光是独立于交互窗口、单次模型调用和开发会话的数字伙伴；当前使用 **DSH 插件交互，不使用 Pi**。Docker 只运行主体服务，旧 Pi workspace 仅保留历史兼容，不再进入默认镜像或启动路径。
 - self / cognition / affect / memory / agency / growth 属于**同一个主体**，不是六个 Agent、模型或服务。
 - **0.1.0 必须包含自主学习**：一次授权资料与预算后，自主选题、学习/练习、独立测验、保存结果、继续或停止。不得自行降为后续功能，也不得仅靠总结或自报“学会”替代闭环。
 - 当前学习限定为授权本地 pack 内的有界前台运行。扩大到联网、工具或后台运行须明确范围与权限，不能以“自主”为由默认开放。
@@ -21,7 +21,7 @@
 
 ## 技术与依赖边界
 
-- Node.js >=24、严格 TypeScript、npm 双 workspace、内建 `node:sqlite`；不为便利擅加框架、依赖或数据库。
+- Node.js >=24、严格 TypeScript、npm workspace（dawn、当前DSH插件及历史Pi兼容源码）、内建 `node:sqlite`；不为便利擅加框架、依赖或数据库。DSH同版SDK/React由宿主提供，JS薄适配层与无依赖构建边界见D-020，不因此放宽领域规则。
 - `packages/dawn/src/core/` 为无外部 I/O 的领域规则，不依赖 runtime/adapters/legacy/Pi；runtime 编排，adapters 负责模型、存储和传输。
 - Pi → dawn，不能反向依赖。Pi 不代答、不复制人格、不发送自己的会话历史、不自动启动本体。
 - 应用版本 0.1.0、协议 v1、领域 schema2、SQLite v2交流/v3学习及 legacy v1是不同契约；更改其中之一不自动授权其余升级。

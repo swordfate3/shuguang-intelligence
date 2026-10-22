@@ -22,7 +22,7 @@
 
 ## 已有运行链路（legacy，尚未切换六核心）
 
-这是一个 Node.js >= 24、TypeScript 的 npm 双 workspace 项目：`packages/dawn` 保存独立于 Pi 的主体核心、生命周期操作和本地 SQLite 持久化适配；`packages/pi-extension` 是可选的薄直连客户端。这条运行链路仍保留旧五模块快照格式，不应与新六核心的已实现领域规则混为一谈。
+原legacy链路由 Node.js >= 24、TypeScript 的两个 workspace 构成（当前项目另有下述可选DSH workspace）：`packages/dawn` 保存独立于 Pi 的主体核心、生命周期操作和本地 SQLite 持久化适配；`packages/pi-extension` 是可选的薄直连客户端。这条运行链路仍保留旧五模块快照格式，不应与新六核心的已实现领域规则混为一谈。
 
 `packages/dawn` 使用 Node 内建 `node:sqlite`。当前 SQLite schema v1 每个数据库保存一个完整主体快照、不可变 bootstrap 快照，以及受支持的生命周期事件。`wake` / `sleep` 以 `BEGIN IMMEDIATE`、revision CAS 和同事务事件追加变更状态；打开数据库时会校验 identity/schema/revision，并从 bootstrap 回放事件、与快照比对。受支持的写入只有生命周期变更，并没有任意主体字段更新能力。初始 snapshot 可以包含非空的合法状态，但新库 revision 必须为 0；lifecycle 写入只改变 lifecycle、revision、updatedAt，不会重置其余字段。
 
@@ -32,7 +32,13 @@ CLI `init`、`status`、`wake`、`sleep`、`events` 都需要绝对 `--db` 路�
 
 ## Docker部署封装
 
-新增Dockerfile/Compose把现有源码、Node和Pi放入同一容器，非root用户运行。曙光服务与通过exec打开的Pi仍是独立进程，薄扩展由启动入口显式附加；不转交模型密钥或Pi历史，不发布控制端口。容器管理脚本只包装现有CLI与私有凭据录入，不改变core、数据库格式或授权/预算规则。主体配置/数据、Pi配置/会话、工作目录分别落命名卷；Linux/WSL宿主由`start.sh`统一检查、首次构建、容器setup、启动/就绪与Pi连接；容器setup在明确确认后初始化或补缺配置，已有完整文件仅预检。前台学习仍单独执行，服务本身不自动初始化、wake或学习。停止容器会结束其中进程，数据保留依赖卷。当前未有Docker实际构建/运行证据，使用见根目录[README](README.md)，决策见D-018/D-019。
+当前Dockerfile/Compose只运行曙光服务，交互统一在Host的DSH插件；不安装Pi/Git/额外npm包，不复制Pi扩展，不创建或挂载Pi会话/工作卷。非root运行，保留原`dawn-data:/data`，旧pi-home/pi-work卷只是不再挂载，不删除/迁移。Linux/WSL的`start.sh`执行检查、首次构建、显式setup、up及鉴权status就绪后返回终端，绝不打开聊天客户端；随后在DSH面板中操作。容器setup确认/补缺/私有凭据与学习前停全部写入者等门控保持；不改core/数据库/协议，不发布控制端口，不自动wake/生成/学习。停止容器保留数据，关闭DSH面板不停止容器。镜像需显式重建，旧运行容器不会自动升级；当前未有Docker实际构建/运行证据，使用见根目录[README](README.md)，决策D-022取代D-018/D-019中的Pi默认路径。
+
+## 当前 DSH 插件交互入口
+
+当前交互使用第三 workspace `packages/dsh-plugin`（旧Pi源码仅历史兼容，不参与默认部署）：Client 懒工厂在 DSH main/sidebar slots 提供面板，通过独立严格 Typert RPC 到 Host `shuguang` 服务，再复用 DawnClient/HttpDawnTransport。依赖仅 DSH 插件 → dawn 客户端；core、runtime、Pi 原逻辑不变。Host 强制 owner；浏览器不持有服务 token，不直接访问会拒绝 Origin 的 Dawn HTTP。仅显式命令读取唯一配置凭据源（私有 tokenFile 或 SHUGUANG_*_TOKEN 环境变量），不导入 DSH Session/模型/API key；激活不建主体、不启动服务或探测。关闭/卸载/namespace 失效取消并拒迟到结果，不隐式 sleep。8请求上限、版本CAS/协议v1/超时和失败不退款沿用原边界。
+
+构建将可达 Dawn 客户端源码类型擦除并复制进插件 lib，不把 SDK 或 React 打入产物；同版 optional Host peer 由 DSH 运行时解析，Client 依赖动态 Remote namespace 注入。不新增后台学习或学习HTTP命令。新增显式Docker模式：Host固定shell:false执行docker compose exec -T进入已有dawn容器，以stdin单帧DawnRequest驱动容器bridge-request，再用容器私有token访问原loopback服务；stdout单帧有界响应，两端校验/关联/取消，无端口/token导出/模型env加载/直接DB访问。默认HTTP与Docker配置互斥，只有HTTP要求同loopback；Docker权限与可信context/Compose由用户明确选择，不自动up/build/停止。实际Docker exec及断开传播尚未验收。详细决策 D-020/D-021；使用与未验证项见[README](README.md#3-构建并安装-dsh-插件)。当前 HTML 架构图未补 DSH 入口，以本文及 D-020 为准。
 
 ## 依赖与边界
 

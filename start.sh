@@ -9,12 +9,12 @@ case "$command" in
   help|-h|--help)
     cat <<'HELP'
 曙光智慧 — WSL/Linux + Docker
-  bash start.sh          首次配置后启动并进入 Pi；已有服务直接连接
+  bash start.sh          首次配置后启动曙光服务；就绪后返回终端，在 DSH 插件中交互
   bash start.sh status   查看容器状态
   bash start.sh stop     正常停止，不删除任何卷
   bash start.sh build    停止服务后显式构建/更新镜像，下次启动生效
-首次构建需要联网下载基础镜像和依赖；不会在 WSL 安装 Node/Pi。
-退出 Pi 后服务继续运行；不自动唤醒、生成、学习或恢复 pending。
+首次构建需要联网下载基础镜像；不会在 WSL 安装运行时或交互客户端。
+服务在 Docker 中独立运行；关闭 DSH 面板不停止服务，不自动唤醒、生成、学习或恢复 pending。
 HELP
     exit 0 ;;
   start|status|stop|build) ;;
@@ -34,7 +34,7 @@ esac
 running=$(compose ps --status running -q dawn)
 if [[ "$command" == build ]]; then
   if [[ -n "$running" ]]; then
-    printf '%s\n' '服务正在运行。请先 bash start.sh stop；这也会关闭容器中的 Pi，请先保存工作。' >&2; exit 1
+    printf '%s\n' '服务正在运行。请先停止 DSH 中的在途请求，再 bash start.sh stop；确认服务停止后才能构建。' >&2; exit 1
   fi
   compose build dawn
   printf '%s\n' '镜像已构建。运行 bash start.sh 启动；现有主体与配置不会重建。'
@@ -56,7 +56,7 @@ if [[ -z "$running" ]]; then
   compose run --rm --no-deps dawn setup
   compose up -d --no-build dawn
 else
-  printf '%s\n' '检测到已运行的服务，直接连接；不重新配置或重建。'
+  printf '%s\n' '检测到已运行的服务，仅检查就绪；不重新配置或重建。'
 fi
 ready=false
 # Each status call is bounded by the existing control-client timeout. No model request is made.
@@ -65,9 +65,9 @@ for (( attempt=0; attempt<5; attempt++ )); do
   sleep 1
 done
 if [[ "$ready" != true ]]; then
-  printf '%s\n' '服务未在就绪检查内响应。未打开 Pi、未自动重试生成。请查看 docker compose logs --tail 30 dawn。' >&2; exit 1
+  printf '%s\n' '服务未在就绪检查内响应。请勿在 DSH 中发送生成请求；未自动重试生成。请查看 docker compose logs --tail 30 dawn。' >&2; exit 1
 fi
-printf '%s\n' '曙光服务已就绪。即将进入 Pi；退出 Pi 不会停止服务。' \
-  'Pi 输入框用 /dawn status 查询；休眠时用 /dawn wake <当前版本>。' \
-  '只有 /dawn say … 发给曙光，普通输入仍发给 Pi。'
-compose exec dawn dawn-container pi
+printf '%s\n' '曙光服务已就绪，启动完成并返回终端。请在 DSH 的「曙光智慧」插件面板中交互。' \
+  '插件选择 Docker 连接，填写本机项目目录及原 Docker context/Compose 项目；先点击「查询状态」。' \
+  '需要时按实际版本显式唤醒；不自动生成或学习。关闭 DSH 面板不会停止服务。'
+exit 0
