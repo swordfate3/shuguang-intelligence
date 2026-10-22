@@ -1,0 +1,6 @@
+# Windows checkouts must not turn container entrypoint lines into CRLF.
+docker/*.sh text eol=lf
+start.sh text eol=lf
+Dockerfile text eol=lf
+compose.yaml text eol=lf
+.dockerignore text eol=lf

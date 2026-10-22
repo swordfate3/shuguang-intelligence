@@ -1,0 +1,32 @@
+services:
+  dawn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PI_VERSION: "1.4.0"
+    init: true
+    command: ["serve"]
+    # Explicit up/stop lifecycle. Never restart an unconfigured or failing model service in a loop.
+    restart: "no"
+    stop_grace_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - dawn-data:/data
+      - pi-home:/home/node/.pi
+      - pi-work:/work
+    # No published ports, host network, Docker socket, host keys or host Pi settings.
+    healthcheck:
+      test: ["CMD", "dawn-container", "status"]
+      interval: 30s
+      timeout: 12s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  dawn-data:
+  pi-home:
+  pi-work:

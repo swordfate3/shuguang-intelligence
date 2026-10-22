@@ -22,6 +22,18 @@
 
 ## 当前停点
 
+用户已明确授权提交并推送当前最新源码到origin/main，本轮发布内容为Docker封装、Linux一入口/统一设置及单README教程。提交前重新执行全量308/308、交流+24学习验收、四次假上游离线学习及借用宿主TS5.9.3检查均通过；敏感文件范围与暂存检查另见verification。此记录取代下文历史“未授权commit/push”停点，实际提交hash/远程同步以Git为准。收到Pi fd/ripgrep首次下载超时与曙光UNAVAILABLE反馈，均未修复/未定位，不通过本次推送冒称解决。未真实构建/部署、未调用真实供应商、未迁移数据。
+
+按用户最新要求，部署与使用教程仅保留根目录README.md：WSL/Linux Docker单一路径，包含首次设置、容器Pi/显式唤醒交流、日常启停、可选学习、更新与数据注意事项。已删除单独Docker教程与旧源码部署手册，不保留副本；清理文档索引/架构/决策引用。仅修改文档，校验README命令块语法/本地链接及删除文件引用，不执行部署/初始化/真实调用，不重跑全量或类型检查。上一代码轮308/308为历史基线，Docker实际部署/commit/push仍未执行。
+
+上一代码任务按用户的WSL/Linux Docker实际环境进一步收敛部署：新增`bash start.sh`统一首次构建/容器setup/启动就绪/进入Pi，复用已运行服务；`status/stop/build/help`同入口，无sudo/安装/自动git pull或删除卷。统一setup补缺配置、不覆盖旧主体/凭据；首次写入需确认，不自动wake/生成/学习。README为Linux使用入口，原先分散的部署教程已按最新要求合并到README并删除。最终全量308/308、setup9/9、launcher8/8、入口5/5、真PTY设置6/6与借用宿主类型检查通过；独立有限快照审查确认取消exit1/最终预览后yes门控，范围内无未关闭可证实P1/P2。详细结果见verification；本轮仍不构建/部署/迁移正式数据或push，真实Docker验证仍受环境限制。以下为前轮Docker封装记录。
+
+前一任务新增Docker部署封装：Dockerfile/Compose、非root单容器/loopback无端口发布、三个命名卷、dawn-container显式初始化/离线模型向导/隐藏key录入/serve/Pi/request/学习入口，以及Windows PowerShell→容器配置教程。首次模型配置由用户确认，启动不自动init/wake/生成/学习；不导入宿主Pi或正式主体。容器key变量限定*_API_KEY，启动前校验单绑定model.env格式，拒绝Node/OS控制环境注入。已有本机服务/数据未改，未执行安装、构建或迁移。
+
+Docker专项11项、真实PTY隐藏录入5类、完整回归290项及借用宿主类型检查的最新结果见verification；当前没有Docker CLI/socket，无法实际build/compose/Windows/Pi镜像内复验，不以宿主测试替代部署。README与Docker代码均尚未提交/推送，上一轮远程main为e4ece33。本轮不再仅为文档修改，前一段README文档阶段记录如下。
+
+前一轮仅更新README使用教程：按远程拉取→首次v3/v2分支→模型向导/私有env-file→前台服务→本地Pi包安装/连接脚本→Pi输入框选择/交流→独立CLI/学习/停止/升级排错重排，明确本机wrapper不随仓库分发。文档本地链接、15段shell语法及合成临时v3/token/env-file/加载模型/HTTP状态/唤醒/零调用预算冒烟通过；没有安装Pi包、操作正式数据或真实供应商。本轮没有源码变更，未重跑全量；279项是模型控制版本既有基线。README修改尚未提交/推送，上一轮模型控制代码已推送main的e4ece33；远程状态以Git为准。
+
 用户要求启动曙光，随后明确提供入口和临时key授权代配置。已在持久卷 `~/.local/share/shuguang-intelligence` 新建v3主体dawn/曙光（总额度20、学习子额度4、示例合成pack），生成私有服务token；启动127.0.0.1:7341无模型服务并wake，实查awake/revision1、所有调用计数0、经历/记忆0。随后已在私有目录配置用户提供的入口/凭据，初先沿用历史模型，后按用户要求鉴权GET /v1/models发现其不在列表，已私有备份并改为列表中的deepseek-v4-pro/low/30秒/maxCalls4、重启服务（模型参数/生成契约仍未真实验证）；没有真实生成、学习执行或开机自启。PID/log/本机操作说明在私有目录；重启容器需手动启动，不把PID文件当租约。
 
 持久入口 `~/.local/bin/{dawn,dawn-serve,dawn-stop,dawn-model-config,pi-dawn}` 已准备。当前model.json/model.env已私下保存并加载，dawn-stop核验完整argv后停止PID记录对应的服务，dawn-serve可前台重启。Pi包装命令--help退出0不等于真实TUI端到端验证；未自动修改Pi全局配置。详细本机交接见私有目录START-HERE.md，不读取凭据正文。
@@ -34,9 +46,9 @@
 
 | 项目 | 已记录结果 | 范围 |
 |---|---|---|
-| `npm test` | 本轮279/279通过 | 含新增模型控制、Pi选择器及UI→真实Dawn/SQLite/adapter假上游闭环 |
+| `npm test` | Linux部署简化本轮308/308通过 | 含setup9/launcher8/入口5/管理7；非真实Docker构建 |
 | 模型控制专项 | 本轮通过，含最终全量 | 目录边界/取消/缓存/重定向、共享额度、CAS/FIFO/排队取消、CLI/协议/选择器 |
-| 真实PTY合成烟测 | 此前6/6通过，本轮未重跑 | 仅离线配置向导，不是Pi TUI选择器验证 |
+| 真实PTY合成烟测 | 统一setup本轮6/6通过 | 保存/no/EOF/密钥Ctrl+C/Ctrl+D/SIGTERM；终端恢复/无回显，非Docker或Pi TUI认证 |
 | `npm run verify:acceptance` | 本轮交流与学习组合通过 | 临时库、loopback假上游，原组合范围不变 |
 | `npm run verify:learning:offline` | 本轮通过 | 两目标4调用；笔记/评分/记忆、精确冷开、完成后零调用、持久停止和清理 |
 | 新离线验收专项 | 本轮3/3通过 | 成功、假上游失败/内部取消、IPC就绪后SIGTERM |
@@ -51,6 +63,7 @@
 
 ## 已知问题与阻塞
 
+- Docker CLI/socket不可用；未实际build/compose/Windows终端/Pi镜像内验证，镜像供应链未完全锁digest/传递依赖，不能称可复现部署。首个有Docker环境的执行者应按README.md验证首次卷权限、配置、Pi加载、信号与重建保留。
 - 项目开发依赖未在此环境干净安装，无锁文件；标准 `npm run check` 缺本地 `tsc`。宿主替代检查不能证明依赖安装可复现，也未在最低Node24.0.0复验。
 - 尚无真实模型学习评测；1024输出token、严格JSON、模型实例maxCalls及超时均可能导致实际失败，不允许自动重试掩盖。
 - 仅本地pack前台学习；pack文本保守拒URL/路径。无任意搜索/工具、后台长驻、人格自动晋升或权重训练。
@@ -60,7 +73,9 @@
 
 ## 下一项可执行任务
 
-**P1：确认授权后，分别执行真实学习链路与干净环境复验。批准前不执行。**
+**部署当前门槛：**在有Docker引擎与Compose v2的WSL/Linux验证副本中，明确允许联网构建后执行`bash start.sh`，检查首次卷权限/统一设置/取消/启动/重启接续/Pi加载及停止；采用合成主体，真实API调用另确认。此环境无Docker，不能将该步骤记为通过。现有主体迁移与本轮commit/push另行授权。
+
+**研究与复现P1：确认授权后，分别执行真实学习链路与干净环境复验。批准前不执行。**
 
 1. 按 [真实学习方案](docs/learning-evaluation.md) 确认具体endpoint/model/reasoning、合成资料披露、最多4次生成与费用、私有临时目录及留存。只证明真实链路，不宣称学习收益。
 2. 按 [可复现方案](docs/reproducibility.md) 确认持久验证副本位置、Node/npm/Pi精确版本、联网安装及脚本策略，再生成真实锁并第二空副本复验；不修改唯一工作树或宿主。

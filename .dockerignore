@@ -1,0 +1,31 @@
+# Allow only the runtime source, fixed sample pack and reviewed deployment scripts into build context.
+**
+!Dockerfile
+!.dockerignore
+!package.json
+!packages/
+!packages/dawn/
+!packages/dawn/package.json
+!packages/dawn/src/
+!packages/dawn/src/**
+!packages/pi-extension/
+!packages/pi-extension/package.json
+!packages/pi-extension/src/
+!packages/pi-extension/src/**
+!config/
+!config/learning-pack.example.json
+!docker/
+!docker/entrypoint.sh
+!docker/manage.ts
+!docker/setup.ts
+# Even allow-listed source directories may never contribute private/generated files.
+**/.env
+**/.env.*
+**/*.env
+**/*.token
+**/*.sqlite*
+**/*.db
+**/*.key
+**/*.pem
+**/node_modules
+**/.git

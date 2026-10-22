@@ -1,5 +1,55 @@
 # 验证记录
 
+## 最新源码提交前复验（2026-10-22）
+
+- 用户明确授权提交并推送origin/main；本轮范围为Docker封装、Linux启动与统一设置、单README教程及测试/开发文档，不含私有配置、运行数据库、凭据或其他项目。不建tag/Release，不安装依赖或运行部署。
+- 提交前重跑`npm test` **308/308通过**、`verify:acceptance`交流+24项学习通过、`verify:learning:offline`四次假上游/两目标/清理passed；借用宿主TS5.9.3根检查`--noEmit`通过，仍不是干净安装或标准tsc可用证明。日志`/tmp/dawn-latest-publish-{tests,acceptance,offline,tsc}.log`。
+- README删除即将过时的“未提交”提示，改为文件版本检查；明确fd/ripgrep下载超时、UNAVAILABLE反馈尚未修复/定位。本次不增加模型请求或更改预算契约。
+- 检查明确暂存路径、凭据特征启发式扫描、Markdown本地链接/README Bash块语法、shell语法与git diff空白；这不是绝对无秘密证明。实际commit/push及远程hash核对以Git/工具结果为准。
+- 真实Docker构建/Compose/镜像内Pi与真实学习仍未验证。下文历史阶段“未commit/push”描述当时事实，不代表本轮授权被撤销。
+
+## 教程统一到README（2026-10-22）
+
+- 按用户明确要求，根README作为唯一部署/使用教程，采用WSL/Linux Docker单一路径；删除独立Docker与旧源码手册文件，不保留副本或并列旧部署流程，清理索引/架构/决策/状态引用。技术规格与测试证据不属于部署教程，继续保留。
+- 本轮仅文档增删，不更改启动脚本/应用，不执行Docker、初始化、模型调用或迁移。检查README代码围栏/Bash语法、Markdown本地链接和已删除教程引用、git diff --check；未重跑全量/类型检查，308项为上一代码轮基线。未commit/push，也未实际Docker认证。
+
+## Docker教程补全（2026-10-22）
+
+- 用户指出简化后教程缺少完整语境。当时修订部署教程及状态/验证索引（教程现已统一到根README）：区分WSL Bash、容器设置与容器Pi；补Docker/文件版本检查、向导字段与费用、初始sleeping的status/revision/wake、真实say和通知区、Pi认证/模型边界、/quit与停容器差异、以后使用和--continue、手动Compose逐步成功判定、独立CLI、卷/更新/学习及常见排错。没有修改启动脚本/应用/数据格式，也没有新建正式主体或部署。
+- 对照start.sh、Dockerfile/Compose、entrypoint/setup、DawnClient/request CLI、Pi扩展通知实现与安装版Pi公开README/configuration/cli/usage/slash-commands文档，核对容器路径、参数及命令。未读取Pi真实配置/凭据。Pi自身登录仍分离，不将Pi普通模型认证当作/dawn转发所需供应商key。
+- README、Docker、源码手册、文档索引共65个本地链接/锚点及36段Bash/sh代码块语法检查通过；容器命令与case分派核对、bash -n start.sh、sh -n entrypoint.sh、git diff --check通过。只执行start.sh help，不执行教程里的Docker、Git拉取、初始化或付费请求。
+- 独立只读文件快照一致性审查覆盖部署入口、设置、Pi扩展、CLI与教程，未发现可证实P1/P2；按非阻断建议澄清setup只预检文件/配置/凭据格式，不打开SQLite或验证token正文，库/token内容错误可能在serve启动才暴露。主同步修正文案并通过git diff --check，审查不等于真实部署认证。
+- 本轮是文档修订，未重跑npm test/类型检查；上一代码轮308/308与真PTY6/6是历史结果。仍无Docker实际build/Compose/WSL集成/Pi镜像内证据，无预构建发布镜像，Docker改动及教程未commit/push。远程旧版缺文件不能照此使用，README与教程已提示版本前提。
+
+## WSL/Linux部署入口简化（2026-10-22）
+
+- 用户明确在WSL Linux终端操作Docker。新增宿主`start.sh`（Bash，无宿主Node/Pi依赖），检查Docker/Compose；缺镜像首次build、停止服务先容器setup、up --no-build、有限鉴权status后进入Pi。运行中直接复用；status/stop/build/help集中管理，build拒运行中服务，不自动sudo/安装/git pull/删除卷。
+- 新增容器setup合并首次身份/总额度/示例pack确认、兼容API URL/模型ID/thinking与隐藏key录入。已有完整文件只预检，缺配置补项不覆盖；DB/token部分存在拒自动修复。core/协议/数据库格式/原CLI保持不变。入口新增setup分支、允许列表打包与LF属性。
+- 当时README简化为快速开始，并分出源码/Docker手册；此文档拆分方案现已按用户要求撤销，教程只保留根README。文档链接/fence/Bash语法检查通过，不执行教程里的外部或正式命令。
+- Linux launcher专项8项使用可记录argv的假Docker与util-linux script PTY：help/错误无Docker动作，引擎失败/非TTY无启动，status/stop无删卷，build拒运行中，首次build→setup→up→status→Pi，已有镜像复用/配置失败门控，运行中跳过setup，5次就绪失败有界停止、不打开Pi。入口专项5项包含setup分派/参数拒绝，其余原约束保留。独立只读静态快照审查启动脚本/Compose/入口/客户端链路，未发现可证实P1/P2，不替代真实Docker。
+- 统一setup专项 **9/9**：完整四文件只文件预检（包含合成非SQLite占位以证明未打开库）、真实CLI建临时v3/token且无网络、默认模型字段、UI关闭后再隐藏key、缺key补录/拒绝、env缺model时保留与变量绑定校验、DB/token不对称拒绝、token失败保留DB证据、最终yes/取消/abort/非法私有文件。首轮集成在代理未收尾时有两处mock断言错误及exactOptionalPropertyTypes检查失败，修正测试后最终通过，不保留为通过证据。
+- 主复核发现两处向导流程需修正：取消曾exit0会让host继续up；以及仅开头确认而缺最终字段预览。现改为字段→JSON转义安全预览→最终单次yes→写缺项→隐藏key，取消exit1确保宿主不启动。独立只读窄审确认最新链路关闭，范围内未发现其他可证实P1/P2。
+- Python stdlib真PTY **6/6**：保存/no/最终确认EOF/密钥Ctrl+C/Ctrl+D/SIGTERM；合成key无回显、termios完整恢复、取消非零且不建key；最终确认前取消无文件，隐藏录入取消保留之前的DB/token/model三文件。保存后四文件0600、off/maxCalls4，subject-status显示revision0；非TTY重跑完整配置零改动。未访问真实供应商。脚本 `/tmp/dawn-simple-setup-pty.py`及临时fixture清理；不等于Docker TTY认证。
+- 最终 `npm test` **308/308通过**（本轮新增18项：launcher8/setup9/entry分派1）；借用宿主TS5.9.3根配置`--noEmit`通过，测试import覆盖docker/setup.ts/manage.ts。`verify:acceptance`交流+24项学习与`verify:learning:offline`通过（4次假上游，两目标，清理完成）；标准`npm run check`仍127缺tsc，未安装依赖。日志 `/tmp/dawn-simple-{full-final,tsc-final,standard-check,setup,launcher-final,entrypoint,acceptance,offline}.log`。
+- 当前仍无Docker CLI/socket，未下载镜像/依赖、实际build/compose/WSL/Pi镜像内验证；未操作正式主体/私有密钥/原服务、未发真实模型或学习请求，不commit/push。测试数据为owned临时合成并清理。Docker卷/真实信号/更新与Pi端到端仍待有Docker环境复验。
+
+## Docker部署源码封装（2026-10-21）
+
+- 新增Dockerfile、Compose、允许列表.dockerignore、Windows LF属性、docker/entrypoint.sh与manage.ts。只封装既有CLI/模型向导/Pi薄入口，未改core/协议/DB格式：单非root容器、无宿主端口/密钥/socket挂载，主体/配置、Pi目录、工作区三卷；显式init/配置/学习，不自动wake/生成/迁移/覆盖。当时补充部署文档；现以根README的WSL/Linux Docker单一路径为准，不再保留旧源码教程。
+- 容器专项最终 **11/11**：私有0700目录/0600文件/最终symlink拒绝、排他凭据/取消/非法字符、Node dotenv标点往返、非TTY拒读、模拟TTY隐藏/退格/取消/监听恢复；入口缺配置不启动/不初始化、重复init不覆盖、Pi仅注入连接路径不加载曙光key、serve最终env-file argv与exec TERM。serve信号专项最终进程为测试stub，不抢现有7341端口，不将其当真实容器信号认证。
+- Python stdlib真实PTY **5/5**：保存、Ctrl+C、Ctrl+D、SIGTERM、非法引号输入；每项检查合成key不回显、termios前后一致，保存0600/内容匹配，取消无文件。首测发现Enter保存后stdin保持flowing导致进程不退出，已按原readableFlowing恢复并重跑5项通过。不声称所有平台终端认证。
+- 独立只读有限快照审查发现P2：允许NODE_OPTIONS作为credentialEnv会在main前解释env-file并泄露启动错误。已在管理层限定*_API_KEY、写入/预检共用；预检还严格有界校验单变量凭据文件，拒额外行与运行时注入。保留名6类、多行/未闭合/错误脱敏回归通过，独立静态窄复核确认原触发路径关闭；通用配置格式不变，Docker教程写明额外命名限制。
+- 最终全量 `npm test` **290/290通过**；`verify:acceptance`交流+24项学习及`verify:learning:offline`通过。借用宿主TS5.9.3/Node/Pi声明的根配置`--noEmit`通过，新增manage.ts由测试import纳入；标准`npm run check`仍127缺tsc，没有安装依赖。
+- Markdown文件链接/fence与shell语法、Compose YAML解析、git diff空白检查通过；YAML解析不是docker compose config或实际运行。未执行PowerShell语法/Windows终端。当前无Docker CLI/socket，**没有构建镜像、下载基础镜像/apt/Pi包、验证Compose首启卷copy-up/权限、镜像内Pi TUI或重建保留/真实停机**，这些是明确剩余门槛。Node标签/apt及传递依赖未完全锁定，不冒称可复现构建。
+- 本轮不改当前正式数据库/凭据/服务，不迁移或启动真实学习/模型，不commit/push。合成数据为owned临时目录且清理；日志 `/tmp/dawn-docker-{focused-final,full-final,entry,tsc,standard-check,acceptance,offline}.log`仅诊断。真实构建/部署需在有Docker环境执行，不用宿主合成通过替代。
+
+## README使用教程重排（2026-10-21）
+
+- 对照CLI/模型配置/学习命令/Pi包manifest与扩展连接实现，重写README教程，明确终端与Pi输入框、完整仓库依赖、一次性初始化、v3推荐/v2限制、私有env-file、双终端与持久连接脚本、模型/thinking/真实费用、停止/恢复和升级。不把本机额外wrapper当作仓库自带安装入口。
+- README本地文件链接、导航锚点、fence配对与15段bash/sh代码块仅语法检查通过；命令名/manifest/连接变量与当前源码一致。不执行其中安装、拉取或真实调用命令。独立只读核对发现跨终端stop示例需重设DB；审查期间已补独立DB绝对路径示例及自定义替换提示，避免新终端空变量导致撤权失败；独立只读窄复核确认原问题关闭，未执行测试。
+- 使用Python stdlib创建owned临时0700目录，经真实main入口初始化合成v3库/服务token，创建0600合成model.json/model.env，再用Node --env-file启动仅loopback随机端口服务。鉴权request status/model-status、wake0、subject-budget均通过：初始sleeping/revision0，wake后revision1，模型calls与永久reserved均0。供应商地址为不可访问.invalid占位，无目录/生成请求；finally停止进程并删除临时目录。
+- 本轮仅文档变更，未重跑全量/类型检查、未安装Pi扩展或验证真实Pi TUI、未改正式数据或凭据、未推送本轮文档。模型控制版本279项全量为此前记录，不借文档smoke宣称干净安装/真实模型兼容。
+
 ## Pi薄接口模型与thinking选择（2026-10-21）
 
 - 新增同一adapter实例的安全模型状态、显式GET `/models`、模型/档位选择；接通protocol、独立CLI/client、两类服务FIFO及Pi确认/选择器。独立 `selectionRevision` CAS与主体revision分离；控制不读取/修改主体，不预占生成，不重建adapter或重置次数。off仅省略参数。
