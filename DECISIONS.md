@@ -1,5 +1,23 @@
 # 架构决策记录
 
+## D-024：通用 SearchPort 与独立授权搜索任务，Tavily 首个适配器
+
+- **用户授权：**推进搜索能力；选择任务内自主搜索、独立API、Tavily，随后明确“应该做通用的search接口”。因此SearchPort/SearchResult/来源与错误契约供应商无关，可信注册表选择Tavily首实现，不动态import模型指定代码/endpoint、不借用DSH模型/搜索凭据；不以本次开发授权自动调用真实API、部署、提交或发布。
+- **范围与披露：**新search-init/run/status/results/stop前台任务，目标、精确可披露查询集合、主题、provider、有效期和1–10次上限由用户给定；主体已有兴趣/关注的chooseIntention规则选择查询顺序，不让模型自由生成带私有内容的query，也不发主体投影/聊天/教材/测验数据。该版仅搜集资料，暂不接入聊天/学习测验，不改“无工具”模型系统提示，不宣称搜索即学会。网页数据不参与追加权限/查询或代码执行。
+- **持久性：**独立DSR1/version1搜索SQLite，绑定subjectId/scopeId/不可变grant；不改主体DB v2/v3、领域schema2或协议v1，不隐式迁移。事务永久预占后才IO，每词一次、单pending、失败不退款/重试、pending不自动恢复；停止持久撤权拒迟到。结果保存provider/检索时间/URL/标题/摘要/可选发布日期，不写成可信记忆/学习成绩。新任务重新授权，单账本不等于全账户总消费限制。
+- **边界：**读取主体以检查awake/identity/scope/revision，执行前后复核；使用前停止全部同库服务/旧runner，不承诺跨两个SQLite原子事务/全局租约或恰好一次。Ctrl+C取消当前请求，另进程stop阻止提交/后续派发，不承诺撤回供应商已处理/收费请求。默认180s任务期限，单次Tavily<=15s。没有后台联网/网页抓取/任意URL工具，也不开放控制HTTP搜索方法。
+- **适配器与隐私：**固定Tavily官方HTTPS Search basic/general/最多3摘要，不自动提价参数/answer/raw/images，不重定向/重试；响应256KiB与字段/UTF8/来源URL语法上限。URL验证只作来源展示过滤，不是DNS/重绑定安全fetch许可。provider变更必须匹配新grant，凭据只显式DAWN_SEARCH_*_API_KEY。Docker独立search.env隐藏TTY创建，运行前校验精确单变量/私有模式，防止env-file额外NODE_OPTIONS；不读取model.env。
+- **验收与限制：**合成fetch/本机fake HTTP、真实临时SQLite与关闭重开/预扣/取消/停止/过期/来源不可信有专项。Windows只在测试临时目录模拟POSIX stat权限验证事务；生产不放宽owner/0600，Linux权限/真实TTY/供应商/DSH按钮仍须独立实装验收。根README集中使用教程。此项仅扩展“授权前台搜索”，不把D-015学习改成联网测验或后台学习。
+
+## D-023：Windows PowerShell 直接启动 Desktop 服务，与插件共享显式目标
+
+- **最新要求：**用户原部署从WSL启动，希望新增Windows Docker启动配置；新增Windows入口，不通过wsl.exe/WSL shell，也不把原生WSL引擎暴露成TCP或自动迁移其卷。Windows Desktop仍可能以WSL2作为内部后端，这不意味着必须从WSL终端操作。
+- **同一部署：**复用唯一compose.yaml与原dawn-data，不另建Windows Compose override，避免插件固定`-f compose.yaml`与启动配置不一致。config/docker-windows.json仅显式dockerContext（desktop-linux）/projectName（shuguang-intelligence），仓库目录来自start.ps1位置，不受当前目录/COMPOSE_PROJECT_NAME推断影响；运行前检查原引擎/项目，首次setup仍明确确认身份及预算。同名项目在不同引擎上不共享卷，不能当主体迁移。
+- **生命周期：**start.ps1支持start/status/stop/build/help。非help命令检查可信context为本机Windows named-pipe且OSType=linux；不自动启动/安装Desktop、切换全局context或fallback其他引擎。setup前需交互终端、原镜像存在则复用，失败不up；运行中不build/setup，5次status就绪后返回DSH；stop不down/rm/delete/recover/wake/学习。插件仍只exec，不取得生命周期权限。
+- **PS5边界：**ASCII脚本兼容Windows PowerShell5.1，捕获命令检查原生exit code，交互build/setup通过无shell的ProcessStartInfo继承stdin/out/err并按Windows规则引用argv，保留隐藏key输入。捕获路径不披露原始Docker错误，wrapper固定脱敏失败提示；不更改全局执行策略。JSON严格拒绝未知/重复/转义字段、非法字符与超限。Docker可执行文件、context和Compose源仍属高信任本机输入，不提供恶意配置沙箱。
+- **DSH同步：**启动前后打印可信目录/context/project供用户照抄到插件。插件不自动读取JSON，不自动安装/改profile；其空context默认default与Windows配置desktop-linux不同，必须显式填相同值。保留Linux旧入口但它不读取新JSON，教程Windows优先。
+- **验收：**PS合成fixture注入Fake Docker/TTY/Pause跑真实调度函数，单独npm入口，不依赖外部Pester或Node子进程管道。CLI help/PS5解析/JSON与引号有专项；不把假Docker当实际镜像/终端/信号/DSH实装。本轮只配置/源码/离线验证，不commit/push、部署、真实资料/模型或主体初始化。
+
 ## D-022：当前交互改为 DSH 插件，移除默认 Pi 运行路径
 
 - **用户纠正：**此前将DSH作为Pi之外的可选窗口不符合最新要求。当前交互正式改为DSH插件，不使用Pi；Docker仍只承载独立主体服务，不把DSH当主体/数据库所有者。不把此要求扩张为自动读取DSH模型/历史/凭据或后台活动授权。

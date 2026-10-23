@@ -26,6 +26,12 @@ Dawn container (no automatic initialization, wake, generation or learning)
   learning-run                                  Foreground approved learning; stop same-DB serve first
   learning-stop                                 Permanently revoke learning authorization
   learning-recover                              Only after ALL same-DB services/runners have stopped
+  search-config                                 Create /data/search.json from bounded JSON stdin (no key)
+  search-grant <task-id>                         Create /data/search-<id>.json from bounded JSON stdin
+  search-credentials                            Hidden independent Tavily key input; new search.env only
+  search-init <task-id>                          Create independent bounded search journal from /data/search-<id>.json
+  search-run <task-id>                           Foreground Tavily search; stop same-DB services first
+  search-status|search-results|search-stop <id>   Inspect/revoke task; results are untrusted private data
   shell                                         Interactive Bash, no automatic model-key injection
 Examples: request wake 0; request model-status; request thinking 0 high
 Model key is never a command argument. Configure only with credentials in a TTY.
@@ -83,6 +89,33 @@ HELP
     [ "$#" -eq 0 ] || exit 1
     node "$MANAGE" verify-files
     exec node --env-file="$DATA/model.env" "$MAIN" learning-run --db "$DATA/subject.sqlite" --model-config "$DATA/model.json"
+    ;;
+  search-config)
+    [ "$#" -eq 0 ] || exit 1
+    exec node "$APP/docker/search-files.ts" config
+    ;;
+  search-grant)
+    [ "$#" -eq 1 ] || exit 1
+    exec node "$APP/docker/search-files.ts" grant "$1"
+    ;;
+  search-credentials)
+    [ "$#" -eq 0 ] || exit 1
+    exec node "$APP/docker/search-credentials.ts"
+    ;;
+  search-init|search-run|search-status|search-results|search-stop)
+    [ "$#" -eq 1 ] || exit 1
+    case "$1" in ''|*[!a-zA-Z0-9_-]*) printf '%s\n' 'Invalid search task id.' >&2; exit 1 ;; esac
+    [ "${#1}" -le 64 ] || exit 1
+    TASK="$DATA/search-$1.sqlite"
+    if [ "$command" = search-init ]; then
+      exec node "$MAIN" search-init --db "$TASK" --subject-db "$DATA/subject.sqlite" --grant "$DATA/search-$1.json"
+    elif [ "$command" = search-run ]; then
+      node "$APP/docker/search-credentials.ts" verify
+      exec node --env-file="$DATA/search.env" "$MAIN" search-run --db "$TASK" \
+        --subject-db "$DATA/subject.sqlite" --search-config "$DATA/search.json"
+    else
+      exec node "$MAIN" "$command" --db "$TASK"
+    fi
     ;;
   shell)
     [ "$#" -eq 0 ] || exit 1

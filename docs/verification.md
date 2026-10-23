@@ -1,5 +1,55 @@
 # 验证记录
 
+## 通用 SearchPort 与独立Tavily前台任务（2026-10-23）
+
+- 授权范围：用户选择任务内自主搜索、独立API和Tavily，随后明确通用search接口。实现供应商无关SearchPort/SearchResult/SearchSource/固定错误与验证，Tavily首适配器，可信注册表匹配不可变grant.provider后才读显式DAWN_SEARCH_*_API_KEY；不动态endpoint/import、不读DSH/模型key、不真实联网/部署。grant目标/query精确集合/主题/过期/1–10次，现有chooseIntention选择顺序，不发主体历史/私有记忆/教材/答案。结果独立账本，不作指令/自动知识或测验成绩。
+- 新DSR1/user_version1 SQLite绑定subject/scope/grant，exclusive0600/私有父路径、事务预扣/完整schema和ledger重放、每词一次/单pending/失败不退/不可逆stop/expiry和结果CAS；不改正式主体库版本，未读取正式库。runner只有read主体，前后复核awake/id/scope/revision，派发前fresh expiry/取消，180s总期限；无跨DB原子租约，必须先停全部同库写入者/旧runner。另进程stop不立即杀活动网络请求，只阻止迟到提交及下一派发，已收费不可撤回。
+- Tavily依据[官方Search文档](https://docs.tavily.com/documentation/api-reference/endpoint/search)，固定HTTPS POST/Bearer、basic/general/max_results3、不开answer/raw_content/images/auto_parameters；固定端点且拒重定向/不抓来源，完整wire<=256KiB、UTF8 fatal、单次1..15000ms、正文也受期限约束，忽略signal上游仍race拒迟到、无重试、固定脱敏错误。source URL语法过滤不是DNS/rebinding保证；摘要title256/content2000/URL2048/date128。只存来源字段，不保留raw/answer等额外内容。
+- Docker补search-config/search-grant有界JSON stdin（10s/16000字节）、search-credentials隐藏TTY与独立search.env、search-*任务入口，配置/授权/key排他创建不覆盖。env-file加载前单独verifySearchCredential拒额外NODE_OPTIONS/未知变量/重复行/非UTF8/超限/公开文件/symlink/hardlink；只允许DAWN_SEARCH_TAVILY_API_KEY。Node CLI在任务状态/主体绑定检查后才resolve credential；Docker运行前安全预检会读取search.env，未将其宣称为终态零文件读取。Dockerfile继续allow-list源码，dockerignore显式允许两个新helper，未复制任何用户密钥。
+- 最终`npm run test:search`（Node24.17.0）：**67总数、65通过、2跳过、0失败**，5个search测试文件。包括另一合成provider、getter零执行/未知字段、独立凭据引用、精确请求、流边界/UTF8、HTTP/raw错误脱敏、超时/取消/忽略signal/迟到、URL过滤、预占/冷重开/停止/失败/篡改/原子回滚/expiry、JSON重复与转义键、env注入/排他写/任务ID。2项实际POSIX权限/symlink专项在Windows跳过；账本/凭据fixture仅在精确临时路径mock stat/getuid以验证真实SQLite事务和文件内容，生产权限未放宽，也不宣称Linux权限已验收。真实Windows未能保证POSIX模式会拒绝有独立断言。
+- 组合回归`node --test --test-isolation=none packages/dawn/tests/search-adapter.test.ts packages/dawn/tests/search-task.test.ts packages/dawn/tests/search-storage.test.ts packages/dawn/tests/search-container.test.ts packages/dawn/tests/learning-core.test.ts packages/dsh-plugin/tests/*.test.ts`：**128总数、127通过、1跳过、0失败**，该轮不含新增search-credentials6项。真实SQLite+runner组合由独立第二连接确认每次I/O前pending已提交、两获准查询、冷重开完全一致、不可信网页不能追加查询或修改主体；不是正式主体DB，也不是供应商网络。
+- 独立只读窄审发现3处边界：旧凭据正则可能引用DAWN_MODEL_API_KEY、长预检后未fresh expiry、search.env未先验证额外Node控制变量；均已修复并补对应测试。后续发现grant允许topics大小写重复而chooseIntention拒绝，修到授权边界。首轮runner合成数据默认curiosity低导致未派发（不是代码错误）；改成合法高好奇心fixture并保留生产意图阈值，不硬强制主体必须搜。
+- 标准`npm test`复跑：59个文件均runner spawn EPERM，未执行业务断言；不得称59个业务失败。`npm run check`缺本地tsc，未安装/借编译器；`verify:acceptance`固定Acceptance failed/details omitted，&&后学习未执行，与先前环境限制一致。`check:capabilities`/`git diff --check`通过。尚未运行完整Linux容器entrypoint行为/隐藏TTY/新镜像构建、真实Tavily、干净TS/Node最低版本或DSH搜索UI；旧DSH连接实装证据不用于搜索。
+- 最终增加CLI成功路径：实际合成主体SQLite（高好奇心、显式awake）、临时grant/config、仅指定合成env引用和完全mock fetch；init→run→关闭重开status→results→stop→停止后run零新请求，另连接见已提交pending，主体库原始字节/validated state完全不变。最终复跑`node --test --test-isolation=none packages/dawn/tests/search-*.test.ts packages/dawn/tests/learning-core.test.ts packages/dsh-plugin/tests/*.test.ts` **135项：133通过、2跳过、0失败**，其中全部5个search文件**68项：66通过、2跳过**。前两段67/128数字为添加此CLI测试前阶段证据。公开包子路径`@shuguang/dawn/search`导出纯通用契约，Docker helper存紧凑JSON避免pretty输出超过16000字节读取上限。入口node --check与diff --check通过；原CLI只读2项通过，release gate2项仍spawn EPERM，不作发布通过。
+- 没有真实搜索/模型/key读取、正式初始化/迁移/唤醒、安装依赖、部署/启动新容器/后台任务、commit/push。教程集中根README。当前新功能只是源码交付，现有镜像未更新；不承诺搜索结果已进入学习闭环。
+
+## DSH实装连接配置与真实Docker桥（2026-10-23）
+
+- 用户本机完成向导并获得Dawn ready，随后已安装插件；其实际错误是面板统一“未报告成功：配置缺失、服务拒绝、连接失败或请求已取消”，说明不能直接称插件未加载。活跃profile为D:\DSHData\home\profiles\desktop，package元数据已link源码并加入bundles，原用户patch没有shuguang项；默认bundle的dockerProjectDir为空，Bridge只在命令时判UNCONFIGURED，并不导致启动失败。
+- 只读核查真实打包SDK：bundle `config:`嵌套正确，loader明确传options.config；缺./package.json export不影响bundle解析（resolver不用该export）；安装pnpm peer警告与原生Node MODULE_NOT_FOUND不能单独证明DSH失败，DSH提供runtime fallback。当前同版app-boot和typert 0.2.1-rc.2。未成功从CLI获得运行树/浏览器诊断，不假称Cordis RPC实际验收完成。只读独立审查也无具体bundle形状问题。
+- 用户明确选择直接保存连接配置，获准在工作区外profile patch仅追加id shuguang-intelligence、name @shuguang/dsh-plugin及connection=docker、Windows绝对repo、desktop-linux、原project、空endpoint/tokenFile/tokenEnv；字面定点编辑保留所有其他profile项，回读271–280行一致。没有读取真实key/服务token，未修改容器模型文件/数据库。
+- Docker命名管道在沙箱内拒绝，获准原样沙箱外检查容器Up20min/healthy，`dawn-container status`返回sleeping revision0。再用已构建DawnBridge（非fake spawn）显式同context/project/repo发送status，沙箱内UNAVAILABLE（已知Node子进程管道边界），获准原样沙箱外后成功返回同一instanceId、sleeping、revision0。证明实际插件传输+容器桥+内部HTTP状态路径，不证明宿主RPC/UI已接受热配置。
+- 未wake/say/学习/模型请求、重建/删除卷/迁移/重配API key、依赖安装或commit/push。建议用户刷新后仅查询状态；仍旧配置则手动停启插件，让宿主重载profile。此次仅配置和诊断，无源码变化，不重跑全量/类型检查；现有Windows22/DSH61记录保持原轮次证据。
+
+## 修复真实WindowsPS5原生退出码误判（2026-10-22）
+
+- 用户本机启动只得笼统失败。用只读context inspect实际复现：在函数中设置局部LASTEXITCODE=null后，原生命令把global:LASTEXITCODE置0，局部仍null，导致Invoke-DawnWindowsDocker始终误判执行失败。此前20项仅替换InvokeDocker seam没有覆盖此包装层，不能把其通过当实际CLI可靠证明。
+- 修复为显式global:LASTEXITCODE清空/快照；wrapper对固定可信异常消息白名单输出阶段提示，不拼raw Docker异常/stderr/argv，不读取或披露凭据。Windows专项新增实际本机PowerShell进程捕获stdout/丢stderr/exit0/exit7及三流继承exit9两项，**22/22通过**；DSH61/61及git diff --check通过。测试将Get-Command在局部只替换成powershell.exe，执行真实native wrapper而不调用Docker/写正式数据。
+- 实际context命令包装返回exit0/一行合法named-pipe；沙箱内start status显示引擎不可达（管道权限），获准原命令沙箱外后start.ps1 status退出0，ps表为空。前轮存在Exited容器是当时证据，当前无项目容器不自行猜测用户清理/换引擎原因；未自动setup/up/重建/删卷或打开凭据。用户需本机再次执行同一start.ps1继续向导，不因status成功声称服务已运行。
+
+## 实际启动容器及交互停点（2026-10-22）
+
+- 用户明确“启动容器吧”。执行固定desktop-linux/original project的compose up -d --no-build dawn；沙箱命名管道拒绝，获准原命令沙箱外重试后退出0，创建shuguang-intelligence_default网络、shuguang-intelligence_dawn-data卷、shuguang-intelligence-dawn-1容器。没有执行init/setup或传模型凭据。
+- 获准只读ps/logs原样沙箱外重试：容器Exited(1)，最近日志只固定“管理命令失败；未输出路径或凭据。”。serve入口先verify-files，当前新卷未配置，不能称Started回执等同服务就绪。不弱化缺文件门控，也不自动循环重启。
+- 用户选择“打开配置窗口”，授权Windows Desktop独立主体由本人向导确认/输入；Start-Process PowerShell -NoExit -ExecutionPolicy Bypass -File start.ps1返回PID9012，但用户反馈没窗口，后续Get-Process查PID不存在，其余PS/conhost无可见窗口。没有成功启动可见交互配置，不编造TTY或UI已打开。已提供本人在本机PowerShell运行的精确命令，API key只在隐藏输入处填写，不进聊天。当前等待本机首次配置，未自动替用户确认yes/身份/模型/密钥，不复制WSL数据，不删除已创建卷/容器。
+
+## Windows Docker Desktop实际镜像构建（2026-10-22）
+
+- 用户要求“去启动看看”并明确使用Windows Docker。从Windows安装路径启动Desktop，初始管道不存在；之后沙箱内Access denied，原样获准沙箱外只读检查，desktop-linux/default均返回linux。不能把沙箱拒绝解释为引擎故障。项目前置元数据检查无本项目容器、卷或镜像；没有读取任何secret配置。
+- 用户随后要求先明确“Windows能否构建”，实际执行Windows docker.exe的`docker --context desktop-linux compose --project-directory <Windows repo> --project-name shuguang-intelligence -f <repo>/compose.yaml build dawn`。初次build因沙箱拒绝C:\Users\fate\.docker\buildx\.lock失败；获准原样重试后 **exit0**，BuildKit所有步骤成功。
+- 镜像名`shuguang-intelligence-dawn:latest`，ID `sha256:0333f6c509a94adfc017b5a4760687acea157cc99b270b7d65ad3c33a5cb89b9`。实际基础`node:24-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205`；构建上下文372.52kB，allow-list未传私有数据、插件生成物/Pi。下载Node基础与Dockerfile frontend；未额外apt/npm安装。
+- 本次是Windows宿主Desktop的Linux镜像构建，不调用WSL终端命令，不是Windows containers镜像。Desktop当前内部使用WSL2后端不影响此结论。
+- **没有执行setup/up**、创建主体数据库或密钥、复制/迁移WSL卷、模型调用或学习；没有commit/push。仅镜像build成功，真实服务/DSH RPC/取消/TTY输入仍不能宣称通过。下文“镜像未实测”指此前离线阶段，现由本节更新，不同时覆盖首次设置/运行验收。
+
+## Windows Docker Desktop直接启动（2026-10-22）
+
+- 用户希望新增Windows Docker启动配置，源码基于已推送76c7130继续；本轮未commit/push、未实际Docker部署/主体初始化/模型调用，不把前次推送授权自动沿用。新增start.ps1与config/docker-windows.json，只选本机named-pipe/Linux Desktop，唯一compose/原dawn-data保持，不移原生WSL engine卷；JSON严格两字段，无凭据。PS入口start/status/stop/build/help，setup/build无shell且继承三流，显式配置上下文/项目贯穿所有命令，原CLI初始化确认门控未改；不自动启动Desktop/Pi/WSL、wake/生成/学习/recover/delete。
+- `npm run test:windows-launcher`实际Windows PowerShell **5.1.26100.9711，20/20通过**，不需要Pester、不调用Docker：help/未知参数、配置字符/字段/上限、远程context拒绝、非Linux/引擎失败、固定context/root/project argv、status/stop/build只做允许动作、缺镜像build→setup→up→status、setup失败不up、非TTY不启动、复用running不setup/build、5次探测4次Pause、非法镜像名/各阶段失败、JSON文件坏格式/重复/转义/未知/超限、反向字段次序、Windows引号/空格/尾反斜线/绝对路径。
+- 测试首轮直接执行.ps1被本机未签名执行策略拦截；使用`powershell.exe -NoProfile -ExecutionPolicy Bypass -File ...`仅该测试进程允许脚本，没有改变全局策略。初写fixture的单元素嵌套数组期望在PowerShell中被展开，修正期望构造后全部通过；无业务断言弱化。`start.ps1 help`同样进程级运行通过，Parser零错误，脚本ASCII避免PS5无BOM中文编码问题。PS7未安装，未实跑。
+- DSH61/61重跑通过，`npm run build:dsh`通过（10自有模块），产物Git忽略；本轮compose/Dockerfile/setup/manage/core/plugin src差异零。独立只读审查无确定P1/P2，审查者独立原16项通过（不把后来增加4项冒称独立跑），wrapper多余位置参数/未知命名/重复Action均exit1，配置及复杂argv引号另验通过。
+- `npm test`仍54个文件runner spawn EPERM（断言前），`npm run check`仍tsc缺失，`verify:acceptance`交流阶段失败(details omitted)，学习被&&短路。没有改脚本隐藏安全校验，也不报全量或TS/真实学习通过。
+- 真实Docker Desktop构建、setup隐藏输入/TTY/Ctrl+C/信号继承、exec断开、DSH安装/浏览器仍未验收；假Docker调度不证明真实终端。配置projectName不是旧主体自动发现，必须核对原engine/project，另一引擎同名卷不共享；用户在新的Desktop上明确创建独立主体与旧主体迁移是两件事。说明仅根README，D-023记录取舍。
+
 ## 功能分支提交/推送授权（2026-10-22）
 
 用户明确要求“直接更新远程分支”，授权将已验证的DSH插件/Docker连接及DSH主入口改动提交并推送origin/feat/dsh-plugin，不合并main、不force、不部署或发布包。下文“未commit/push”描述的是此前开发阶段，不代表本次操作仍未授权。提交前复核待提交路径、排除lib/凭据/数据库与下载产物、检查空白与DSH回归；真实部署和全量/类型检查限制不因Git推送消失。最终提交ID和远程一致性由Git回执确认。

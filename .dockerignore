@@ -16,6 +16,8 @@
 !docker/manage.ts
 !docker/setup.ts
 !docker/bridge-request.ts
+!docker/search-credentials.ts
+!docker/search-files.ts
 # Even allow-listed source directories may never contribute private/generated files.
 **/.env
 **/.env.*

@@ -43,6 +43,17 @@ const HELP = `曙光智慧 ${APP_VERSION} — 六核心独立数字伙伴（显�
   SIGINT/SIGTERM取消当前调用、保留费用与已提交进度；stop撤销授权且不可恢复。
   recover仅在确认此库所有旧runner和交流服务已停止后，把v3同库学习/交流pending标失败、不退款、不重发。
 
+有界自主搜索（通用Search接口，首个适配器Tavily；精确授权搜索词；独立journal，不修改主体格式）：
+  npm start -- search-init --db /private/task.sqlite --subject-db /private/subject.sqlite --grant /private/search-grant.json
+  npm start -- search-run --db /private/task.sqlite --subject-db /private/subject.sqlite --search-config /private/search.json
+  npm start -- search-status --db /private/task.sqlite
+  npm start -- search-results --db /private/task.sqlite
+  npm start -- search-stop --db /private/task.sqlite
+  grant明确目标、精确可披露搜索词、次数1..10及过期时间；每词最多一次，失败不退款/重试，pending不自动恢复。
+  仅前台按主体兴趣/关注选择获准查询，无模型改写query、网页抓取/执行、后台联网或测验搜索。
+  搜索内容是不可信外部资料；结果保留来源，不直接写主体记忆，不宣称学会。results只在私有终端查看。
+  停止全部同库服务/旧runner后执行；独立凭据DAWN_SEARCH_TAVILY_API_KEY只私有环境注入，不传命令行/聊天。
+
 显式旧格式数据库操作（父目录必须已存在，--db 必须为绝对路径）：
   npm start -- init --db /path/dawn.sqlite --id dawn --name 曙光
   npm start -- status --db /path/dawn.sqlite
@@ -87,6 +98,10 @@ export async function runCli(args: readonly string[], signal: AbortSignal): Prom
   if (command === "model-config") {
     const { runModelConfigWizard } = await import("./model-config-wizard.ts");
     return runModelConfigWizard(args, signal);
+  }
+  if (command?.startsWith("search-")) {
+    const { runSearchCli } = await import("./search-cli.ts");
+    return runSearchCli(args, signal);
   }
   if (command?.startsWith("learning-")) {
     const { runLearningCli } = await import("./learning-cli.ts");

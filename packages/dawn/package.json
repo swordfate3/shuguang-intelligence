@@ -6,7 +6,7 @@
   "author": "swordfate3",
   "type": "module",
   "engines": { "node": ">=24.0.0" },
-  "exports": { "./protocol": "./src/protocol/index.ts" },
+  "exports": { "./protocol": "./src/protocol/index.ts", "./search": "./src/adapters/search/port.ts" },
   "scripts": {
     "start": "node src/main.ts",
     "test": "node --test tests/*.test.ts",

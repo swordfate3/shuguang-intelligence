@@ -20,6 +20,10 @@
 
 显式learning-init新建v3学习主体库与不可变本地pack/学习子预算；与普通交流复用同一SubjectState、总budget和事件回放，不把学习当user chat。learning-run前台自主选目标→study→独立assessment→提交学习经历/笔记/本地评分→下一目标。私有答案键不进模型或memory；模型笔记为inference，评分仅为本次表现。pending不自动恢复/重发，显式stop持久撤权拒迟到，Ctrl+C取消当前run。无工具/后台daemon/模型自批成长；详情见docs/autonomous-learning.md。
 
+## 通用授权搜索（SearchPort，首个Tavily适配器）
+
+独立前台`search-*`任务依赖供应商无关SearchPort，注册表只允许可信已实现provider；Tavily固定官方Search API，凭据独立，不借用DSH搜索或model.env。用户精确授权query集合/任务目标/provider/次数/有效期，runtime按同主体兴趣/关注选择下一获准查询，未生成任意查询；网络只发送该query，不传聊天/私有记忆/教材/答案。独立DSR1/v1账本绑定主体/scope，先事务预扣再IO，完成前复核revision/生命周期/停止/过期，保留来源与时间但不写主体记忆或自报学会。失败不退款/重试、pending不自动恢复；前台Ctrl+C与持久stop拒迟到，不承诺撤回已收费请求。无后台/URL抓取/网页执行/学习测验搜索/DSH搜索按钮；不改现有学习或交流路径。跨主体库和搜索库无原子全局租约，运行前停全部同库服务和旧runner，详见D-024与根README。现有学习仍是本地pack，搜索结果接入学习属于下一验收任务。
+
 ## 已有运行链路（legacy，尚未切换六核心）
 
 原legacy链路由 Node.js >= 24、TypeScript 的两个 workspace 构成（当前项目另有下述可选DSH workspace）：`packages/dawn` 保存独立于 Pi 的主体核心、生命周期操作和本地 SQLite 持久化适配；`packages/pi-extension` 是可选的薄直连客户端。这条运行链路仍保留旧五模块快照格式，不应与新六核心的已实现领域规则混为一谈。
@@ -32,7 +36,7 @@ CLI `init`、`status`、`wake`、`sleep`、`events` 都需要绝对 `--db` 路�
 
 ## Docker部署封装
 
-当前Dockerfile/Compose只运行曙光服务，交互统一在Host的DSH插件；不安装Pi/Git/额外npm包，不复制Pi扩展，不创建或挂载Pi会话/工作卷。非root运行，保留原`dawn-data:/data`，旧pi-home/pi-work卷只是不再挂载，不删除/迁移。Linux/WSL的`start.sh`执行检查、首次构建、显式setup、up及鉴权status就绪后返回终端，绝不打开聊天客户端；随后在DSH面板中操作。容器setup确认/补缺/私有凭据与学习前停全部写入者等门控保持；不改core/数据库/协议，不发布控制端口，不自动wake/生成/学习。停止容器保留数据，关闭DSH面板不停止容器。镜像需显式重建，旧运行容器不会自动升级；当前未有Docker实际构建/运行证据，使用见根目录[README](README.md)，决策D-022取代D-018/D-019中的Pi默认路径。
+当前Dockerfile/Compose只运行曙光服务，交互统一在Host的DSH插件；不安装Pi/Git/额外npm包，不复制Pi扩展，不创建或挂载Pi会话/工作卷。非root运行，保留原`dawn-data:/data`，旧pi-home/pi-work卷只是不再挂载，不删除/迁移。Windows新增`start.ps1`及`config/docker-windows.json`，直接选定本机Desktop named-pipe/Linux context与原Compose项目；Linux/WSL旧`start.sh`保持兼容但不读新JSON。两入口执行检查、首次构建、显式setup、up及鉴权status就绪后返回终端，绝不打开聊天客户端；随后在DSH面板中操作。Windows不再要求WSL终端或原生WSL Docker socket，不自动迁移另一引擎的卷；复用唯一compose.yaml以匹配插件，决策D-023。容器setup确认/补缺/私有凭据与学习前停全部写入者等门控保持；不改core/数据库/协议，不发布控制端口，不自动wake/生成/学习。停止容器保留数据，关闭DSH面板不停止容器。镜像需显式重建，旧运行容器不会自动升级；当前未有Docker实际构建/运行证据，使用见根目录[README](README.md)，决策D-022取代D-018/D-019中的Pi默认路径。
 
 ## 当前 DSH 插件交互入口
 

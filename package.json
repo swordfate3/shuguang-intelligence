@@ -10,7 +10,9 @@
   "engines": { "node": ">=24.0.0" },
   "scripts": {
     "test": "node --test packages/dawn/tests/*.test.ts packages/pi-extension/tests/*.test.ts packages/dsh-plugin/tests/*.test.ts",
+    "test:search": "node --test --test-isolation=none packages/dawn/tests/search-*.test.ts",
     "test:dsh": "node --test packages/dsh-plugin/tests/*.test.ts",
+    "test:windows-launcher": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/windows-launcher-test.ps1",
     "build:dsh": "node packages/dsh-plugin/build.mjs",
     "check": "tsc --noEmit -p tsconfig.json",
     "start": "node packages/dawn/src/main.ts",

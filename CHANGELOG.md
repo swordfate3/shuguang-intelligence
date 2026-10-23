@@ -20,6 +20,10 @@
 
 ### 使用与验证
 
+- 新增通用SearchPort/来源契约/可信provider注册表，Tavily首适配器而非硬编码业务；精确查询授权、目标/供应商/有效期/1–10次预算的前台自主搜索，独立持久账本预扣/重开/停止/来源记录。CLI和Windows Docker配置/授权stdin与隐藏独立凭据入口，只取摘要、不抓网页、不自动写主体记忆或联网测验；未真实调用/部署。根README提供教程，D-024记录边界与未验证项。
+
+- 新增Windows PowerShell5.1/7启动入口`start.ps1`与两字段`config/docker-windows.json`，直接使用Desktop本机named-pipe/Linux引擎，无需WSL终端；固定context、原项目和唯一Compose，首次setup交互/保留数据/有界就绪后显示DSH设置，不开放TCP或自动启动Desktop。Windows假Docker专项20项通过，未实际构建或部署容器；原生WSL引擎数据不自动迁移。README切为Windows主路径。
+
 - **当前入口切换为DSH，不使用Pi：**Docker默认仅运行Dawn，不安装Pi或复制其扩展，不再挂Pi会话/工作卷；原主体卷保留，旧Pi卷不自动删除。`bash start.sh`在服务就绪后返回，用户直接在DSH「曙光智慧」面板交互；新安装插件默认Docker连接。README整体重写为DSH主路径，Pi源码仅历史兼容保留。此项取代下文历史“可选DSH/进入Pi/三卷”部署描述（D-022）；不改主体、协议、学习权限或预算。真实镜像/DSH实装仍待验证。
 
 - DSH新增Docker连接模式：固定无shell的本机Docker Compose exec→容器单帧stdio桥→原私有loopback HTTP；消息不放argv，token不离开容器，不开放端口/导入模型key/改库。用户配置显式context、repo目录与原项目，容器须重建后启用新命令，插件不会自动启动或停止。新增25项Docker传输/容器桥合成测试，DSH专项共56项通过；Docker引擎当前未运行，真实exec/镜像/断开传播与DSH安装仍待验收。

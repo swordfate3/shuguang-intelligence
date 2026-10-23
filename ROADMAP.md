@@ -16,6 +16,12 @@
 
 **源码合成验收通过与正式可用/上线分开报告。** 本轮234项全量、24项原学习专项与新增离线学习入口通过；此前231项为历史基线。这些结果不证明任意真实教材学习效果或长期成熟。
 
+## 新增已授权扩展：通用搜索接口与前台任务
+
+- 已实现供应商无关SearchPort/规范化来源、可信provider注册表，Tavily为首适配器；精确query集合/目标/provider/次数1–10/有效期授权，既有主体意图规则选择下一查询，不把私有历史/答案发送上游。
+- 独立DSR1/v1账本绑定主体/scope，持久预扣、失败不退款/重试、停任务拒迟到，来源不可信/不写主体记忆；CLI与Docker配置/授权/隐藏独立凭据/运行/status/results/stop入口。使用教程仅根README。
+- 本轮仅源码/离线验证，不部署新镜像、不读key/真实搜索/模型/commit/push。专项证据见STATUS与verification；真实Linux权限/TTY/供应商、干净TS与DSH按钮尚未验收。未来接入聊天/学习资料要重新明确投影、引用和独立测验答案隔离，不把搜集摘要冒称学会。D-024不扩大后台/任意URL/模型自由query授权。
+
 ## 本次已授权扩展：DSH 薄插件
 
 - 分支 `feat/dsh-plugin`，新增 Host owner-only RPC 桥接与 DSH Web 面板；按最新用户纠正，**当前交互改为DSH插件，不使用Pi**。默认镜像与启动去Pi，仅运行Dawn服务，旧Pi源码只兼容保留；不改六核心/数据库/协议，不启用后台学习或复用宿主模型。
@@ -42,7 +48,7 @@
 
 模型配置已有独立离线向导，并增加Pi薄接口的运行中模型/thinking选择、显式远程目录，见[模型配置](docs/model-configuration.md)。进程内选择不改主体或永久预算；向导只生成显式文件，不改变以下身份/预算/部署授权门槛。
 
-- Docker/Compose当前仅打包Dawn，WSL/Linux `bash start.sh`统一首次设置并启动，就绪后返回，由DSH插件交互；旧Pi镜像需显式重建。当前Docker引擎未运行，实际build/Compose首启/权限/信号、DSH注册与连通仍待验收，不视为已部署。
+- Docker/Compose当前仅打包Dawn，新增Windows PowerShell `start.ps1`+显式context/project JSON配置，不再要求WSL终端；复用原compose/主体卷，Linux/WSL旧`bash start.sh`兼容保留。统一首次设置/启动/就绪后返回，由DSH插件交互；旧Pi镜像需显式重建。当前Docker引擎未运行，实际build/Compose首启/权限/信号、DSH注册与连通仍待验收，不视为已部署。
 - 明确主体身份、私有数据目录、固定额度、备份/恢复、凭据注入、DSH配置与前台启停；无需Pi窗口/认证或数据迁移。
 - 验收：经用户明确批准才创建正式主体或启用服务；备份恢复验证不覆盖唯一原库；停机与故障说明可用。
 - Git提交、tag、push、包发布不是上述任务的隐式一部分，另行确认。
