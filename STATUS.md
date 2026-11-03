@@ -8,7 +8,7 @@
 - Pi配置支持 `{version:1,url,credentialEnv,allowWrite}`，仅HTTPS／环境引用；远程确认不读凭据、无Docker要求，客户端工具暴露不能升级服务端权限。远程share/research在读历史／计划／创建私有child前失败关闭，未远程化能力不伪称可用。
 - 新 `compose.mcp.yaml` 为显式opt-in，sidecar共享Dawn网络／只读原卷，宿主loopback发布7342给可信TLS反代；不把内部Dawn／owner接口公开，不挂Docker socket。新增独立MCP token排他创建入口，不重建DB。整个私有卷可读／同Compose网络可信是部署边界；首应用overlay可能重建Dawn容器，需维护窗口。
 - 真实loopback完整对话已验证：网关→Dawn HTTP→临时六核心SQLite／假模型，显式wake／say、budget1、revision3、断开后仍awake／冷开一致。借已有MCP SDK 1.32.1完成initialize/list/ping/DELETE，另经过实际本地HTTPS反代、临时证书显式CA校验验证，未关闭TLS验证、无公网访问／模型调用。
-- 主最终全量 **512/512**、MCP **52/52**、Pi **124/124**、容器入口组合 **8/8**；原交流／pack验收与离线学习通过。独立静态审查两项P2（Caddy路由遮蔽、header截断漏Origin）修复／补回归／复核关闭，非生产认证。详情见verification最新节；标准npm check仍缺本地tsc，借用严格检查通过。**尚未正式部署域名／证书／Docker overlay，用户现有运行容器不会自动变成HTTPS服务。**不修改正式库／真实key、不安装依赖或commit/push。
+- 主最终全量 **512/512**、MCP **52/52**、Pi **124/124**、容器入口组合 **8/8**；原交流／pack验收与离线学习通过。独立静态审查两项P2（Caddy路由遮蔽、header截断漏Origin）修复／补回归／复核关闭，非生产认证。详情见verification最新节。开源收尾已提交锁文件并 `npm ci` 干净安装，标准 `npm run check` 与全量 `npm test` 均真实通过（本机 Node 24，非 CI 实跑）；新增 CI／贡献指南／安全策略／CODEOWNERS／PR与issue模板，`feat/mcp` 已推送 origin。**尚未开 PR／合 main／配置仓库设置或邀请协作者**；尚未正式部署域名／证书／Docker overlay，用户现有运行容器不会自动变成HTTPS服务。不修改正式库／真实key。
 
 ## 前轮：关键后半段的有界公开研究
 
