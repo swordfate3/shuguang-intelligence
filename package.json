@@ -5,11 +5,20 @@
   "license": "MIT",
   "author": "swordfate3",
   "type": "module",
-  "description": "曙光智慧：独立数字伙伴内核与薄 Pi 交互入口",
+  "description": "曙光智慧：独立数字伙伴内核、MCP与Pi资源包",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./packages/pi-package/src/index.ts"],
+    "skills": ["./packages/pi-package/skills"]
+  },
   "workspaces": ["packages/*"],
   "engines": { "node": ">=24.0.0" },
   "scripts": {
-    "test": "node --test packages/dawn/tests/*.test.ts packages/pi-extension/tests/*.test.ts",
+    "test": "node --test packages/dawn/tests/*.test.ts packages/mcp/tests/*.test.ts packages/pi-package/tests/*.test.ts",
+    "test:mcp": "node --test packages/mcp/tests/*.test.ts",
+    "test:pi-package": "node --test packages/pi-package/tests/*.test.ts",
+    "mcp": "node packages/mcp/src/main.ts",
+    "mcp:http": "node packages/mcp/src/http-main.ts",
     "check": "tsc --noEmit -p tsconfig.json",
     "start": "node packages/dawn/src/main.ts",
     "check:capabilities": "node packages/dawn/src/main.ts --check",
@@ -20,6 +29,7 @@
     "verify:acceptance": "npm run verify:dialogue && npm run verify:learning"
   },
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "~1.4.0",
     "@types/node": "^24.0.0",
     "typescript": "~5.9.3"
   }

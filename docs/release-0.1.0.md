@@ -20,7 +20,7 @@
 | 重启 | 从bootstrap回放到完整snapshot；热连接精确前缀复用 | store篡改/别名/后缀回归 |
 | 生命周期 | 显式awake/sleep、前台进程取消和排空、不自动拉起 | CLI/service/HTTP回归 |
 | 独立入口 | CLI request复用HTTP客户端，无需Pi | request-cli及实际loopback测试 |
-| 可选Pi | 薄命令窗口、shutdown取消、不代答 | 注册handler/transport测试，非真实TUI加载 |
+| MCP接入（feat/mcp） | stdio桥接既有服务，默认只读、显式写工具、取消与边界 | 协议/工具/真实stdio→HTTP→SQLite合成集成；非完整认证 |
 | 边界 | 大小、scope、证据、预算、超时、错误脱敏和不自动重试 | 对应失败路径测试 |
 | 可复验 | 一键临时合成端到端验收、统一版本、能力报告和操作指南 | npm run verify:acceptance / npm test |
 
@@ -66,7 +66,7 @@ npm run verify:acceptance
 - 同步SQLite和核心校验不能即时取消；v3每次完整回放，不复用v2前缀缓存，随数据增长变慢，短样本不证明长期容量。
 - 模型可能不遵守JSON、生成错误内容或不给候选；整轮拒绝会消耗预占次数。没有静默自由文本降级或自动换模型。
 - 直接Node运行已验证；当前环境未安装声明开发依赖/锁文件，标准npm run check不是干净安装已验证，离线类型检查借用宿主工具。
-- Pi真实TUI/RPC加载与正式长期部署未验证；未初始化正式主体，未发布npm或Git tag。
+- 本分支已移除Pi扩展，MCP完整客户端交互、Docker部署及长期运行仍未验证；不把最小握手冒烟当正式接入。未发布npm或Git tag。
 
 ## 后续方向（不是0.1.0已交付）
 

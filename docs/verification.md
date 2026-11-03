@@ -1,5 +1,87 @@
 # 验证记录
 
+## HTTPS远程MCP接入（最新，D-026）
+
+- 用户纠正远程连接不应要求客户端Docker并授权优化。新增标准tools-only Streamable HTTP `/mcp`、独立远程凭据与HTTPS反代契约、Pi远程配置、可选Compose overlay及独立token初始化。保留既有stdio／私有桥／数据库与主体，未部署实际域名／证书／Docker或改正式库／key，不commit/push。
+- 主最终 `npm test` **512/512**，`npm run test:mcp` **52/52**，`npm run test:pi-package` **124/124**；日志 `/tmp/dawn-https-{full,mcp,pi}-final.log`。不是子代理结论代替主验收；中途506/510/511不替代最终512。
+- HTTP专项覆盖三个版本握手／initialized／ping／列表／只读与写、session／Origin／Host／独立Bearer、重复关键header、超量header明确431、64KiB／fatalUTF8／256KiB、慢body／超时／断线不取消／显式取消／DELETE／闲置回收、单session8／全局64／session32容量与忽略abort保留槽位、shape-valid Unicode转义token反射失败关闭、CLI无凭据输出／同值token拒绝／SIGTERM清理。loopback伪反代Host不是公网站点测试。
+- 主新增 `remote-integration.test.ts`：真实网关HTTP→真实Dawn HTTP→临时六核心SQLite＋一次假模型，先status sleeping、显式wake和say、revision3／永久reserved1、同主体记忆、DELETE后新session仍awake、关闭gateway后Dawn仍能查询、冷开一致。无正式资料或真实模型费用。
+- 借已有 **MCP SDK 1.32.1**（宿主适配器依赖，不加入本项目／不安装）完成真实initialize／list／ping／DELETE。第一轮仅loopback HTTP私有链路 `/tmp/dawn-https-sdk-smoke.mjs`；第二轮 `/tmp/dawn-https-tls-smoke.mjs` 使用已装openssl在临时目录生成本地测试证书、SDK→真实HTTPS反代→HTTP网关，显式CA＋IP SAN校验，`socket.authorized=true`，**不关闭TLS校验**，零Dawn模型调用／零公网请求，finally删除证书。日志 `/tmp/dawn-https-{sdk,tls-final}.log`。不是实际Caddy／公共证书／DNS／用户TUI验证。
+- 主容器入口组合 **8/8**（`/tmp/dawn-https-container-final.log`）：固定mcp-http argv／独立token路径／不加载model.env、true/false服务端写开关、token排他0600且不init DB／不覆盖、base默认不发布端口、overlay仅宿主loopback／只读卷／无Docker socket／无第二个serve。PyYAML解析overlay通过，**没有Docker Compose CLI／镜像构建／引擎动态验证**。
+- Pi远程测试覆盖HTTPS／无userinfo-query-fragment／精确字段／环境引用且不读key、无Docker注册、客户端六写工具hidden及现有八工具目录对应、远程share/research在读取历史／计划或建child前失败关闭。实际Pi1.4.0 ResourceLoader根／子包均3命令1skill0模型工具、无UI不读历史（`/tmp/dawn-https-loader-final.log`）。当前宿主 `pi-mcp-adapter` **7.0.0**，历史6.0.0核对不冒充当前版本；本轮核配置转换／excludeTools，未实际用户TUI动态连接。
+- 主借已有TS5.9.3／官方Pi和Node声明严格根 `--noEmit`通过（`/tmp/shuguang-research-typecheck.json`／`/tmp/dawn-https-typecheck-final.log`）。标准 `npm run check`仍127 `tsc: not found`（`/tmp/dawn-https-standard-check.log`），未安装依赖，不是干净安装／最低Node矩阵。
+- 原 `verify:acceptance` 交流＋24pack专项与 `verify:learning:offline` 两目标四假调用／隔离评分／记忆冷开／清理通过，日志 `/tmp/dawn-https-{acceptance,offline}.log`；不等于真实学习效果。Markdown围栏／相对链接、manifest JSON及 `git diff --check`通过。
+- 独立静态审查发现并修复2项P2：Caddy全局respond404遮蔽代理→互斥handle＋fallback（主在线核官方handle语义，未安装运行Caddy）；Node maxHeadersCount=32静默截断尾部Origin→maxHeadersCount0但8192字节限保留、rawHeaders数量超32显式431，原始socket尾部evil Origin／重复version／auth均拒绝且Dawn零IO。主实际回归通过，独立只读复核关闭两项，覆盖快照内无新增可证实P1/P2；**不是安全认证**。
+- **未部署／限制：**服务端仍须明确设置真实域名、可信TLS反代、网络可达和远程凭据交付；源码不会自动升级现有运行镜像。首次应用overlay可能重建原Dawn容器须维护窗口，卷不删除。网关读整个私有卷／共享Compose网络为可信部署边界；远程不是多用户ACL，不提供OAuth／SSE／恢复重放，share/research私有桥尚未远程化。未知写结果不自动重发，凭据反射扫描不保证识别任意编码／拆分变形。普通HTTPS聊天不要求v5迁移。
+
+## v5有界公开研究：关键后半段实现（最新）
+
+- 用户明确授权实现后半段；只改源码、合成测试和文档，未安装、真实联网/付费、正式迁移/部署或commit/push。精确范围见D-025与host-capabilities最新首节：获准公开问题池排序、search任务、独立模型phase、评分/记忆、继续/停止；不是自由query/全历史自动提问/web.fetch。
+- 主`npm test`最终 **484/484**通过（`/tmp/dawn-research-full-final.log`）；Pi专项 **118/118**（`/tmp/dawn-research-pi-final.log`）；研究storage **20/20**（`/tmp/dawn-research-storage-final.log`）；研究integration **10/10**（`/tmp/dawn-research-integration-final.log`）。provider **42/42**全假DNS/request/合成key；不是实际TLS/真实Tavily互操作认证。
+- storage覆盖v5显式排他新建/旧v3/v4不升级、两目标四结果、准确manifest排序、precharge共享chat/pack额度及pending互斥、重复claim拒绝/receipt幂等冲突、stop/sleep/重启unknown、accepted恢复不再搜、容量整事务拒绝/SQL触发器回滚、冷回放/表字段/attempt/receipt/audit篡改、无heldout待验证、同页canonical/fragment/不同摘录共同根及无growth、全库搜索单claimed。
+- 主真实**Pi executor loop→JSONL子进程→loopback私有HTTP→临时v5**：两次假搜索、四次假曙光模型调用，study/assessment投影答案与资料隔离、程序评分、同主体记忆/预算4/history0/冷开一致。不是假Docker对实际引擎的认证，更不是用户TUI联调。另真实HTTP测跨binding owner安全status/stop/resume、executor越权拒绝、未配置模型拒研究、EOF pause、binding到期无需新请求即abort/fence、重复serve（同端口失败/不同端口成功）不隐式接管、显式CLI recover停旧写者后保留未知费用。
+- 独立存储/运行/provider静态审查发现5项P2：审计普通容量导致fail+terminal回滚、fragment假独立根、binding到期无主动取消、普通serve隐式接管活服务、JSON转义凭据反射。均修复并补合成回归；静态复核具备关闭条件，无新增可证实P1/P2。8192审计硬上限仍有界，不宣称永远可清理无限记录。
+- 独立Pi审查发现4项P2：resume绕过当前注册、stop迟到确认UI丢失、bridge失效不取消provider、idle等待不可取消。修复start/resume先注册/UI重检、idle先于bridge与abort race、HostClient lifecycle signal→operation/provider signal。复核又发现stdout EOF/explicit close入口遗漏，统一fail并保留still-live SIGKILL；新增无pending exit/EOF/stream close/explicit关闭，以及DNS等待断开零dispatch回归，最终静态复核关闭。卸载/断开仍不stop/sleep/delete主体。
+- 主修两个phase竞态：study完成不代表stage改变，新增pendingModel只表示真实在途；快速模型可在ACK前完成，以持久modelReserved推进判定成功。runner不再用微任务清理滞后的内存active拒下一phase，而用SQLite同步单pending为唯一互斥，barrier独立Set/controller按attempt跟踪，旧cleanup不覆盖新phase。Pi fake瞬间完成四phase和真实child闭环覆盖，三次固定时钟重复闭环通过。
+- 实时墙钟校正曾使研究完成早于已保存updatedAt而失败关闭，未删除生产时间检查；集成测试采用Node内建Date mock固定时钟。前期失败与中途480/482/483计数不替代最终结果。
+- 原`npm run verify:acceptance`交流+**24/24**pack专项、`verify:learning:offline`两目标/4次假上游/隔离评分/冷开/清理通过，日志`/tmp/dawn-research-{acceptance,offline}-final.log`。借用已有TS5.9.3与Pi/Node声明根严格`--noEmit`通过（`/tmp/shuguang-research-typecheck.json`、`/tmp/dawn-research-typecheck-final.log`），未装依赖。标准`npm run check`仍127 `tsc: not found`，不是干净安装/最低Node认证。
+- 主真实Pi1.4.0 DefaultResourceLoader临时workspace/agentDir/inMemory settings/PI_OFFLINE根与子包均**3命令/1skill/零模型工具**，无UI研究拒绝且history读取0；`/tmp/dawn-research-pi-loader-smoke.mjs`及`/tmp/dawn-research-pi-loader-final.log`。npm pack子包dry-run/ignore-scripts/offline，精确9文件（LICENSE/manifest/skill/src6），无安装/归档，临时cache清除；根包无新增发布allowlist，不宣称可安全npm发布。
+- `check:capabilities`仅metadata报告researchLearning5，无DB/模型/服务副作用；25 Markdown本地链接/围栏、manifest与示例JSON、`git diff --check`通过。README唯一教程，研究示例截止故意过远、要求用户复制私有文件并显式调整，不会自动发送。
+- **未验证：**实际供应商/API/key注入、真实TLS socket pin端到端、供应商内部访问/收费、真实模型学习质量、Docker镜像/Compose/用户Pi TUI、正式v2/v3/v4迁移、跨进程租约。源码可用与正式已启用分开，未知请求无网络恰好一次保证。
+
+## 最小来源切片：同库v4与私有桥（本轮）
+
+- 用户授权实施后，仅修改源码、技术文档和合成测试；未commit/push、安装、部署、迁移正式库或调用真实模型/Web。新增明确`host-learning-init`，默认setup和旧learning-init仍v3，v2/v3拒绝host方法而非自动迁移；应用0.1.0、普通wirev1、领域schema2保留。
+- 主执行`node --test packages/dawn/tests/conversation-storage.test.ts`：最终17/17。覆盖同主体user_statement/inference、定位去重、hash/角色/父项/时间冲突、准确grant绑定/到期/不延长不复活、接收与消费分开、触发器失败整批回滚、冷回放/篡改拒绝、pack兼容/预算0/history空、chat/pack pending互斥、sleep撤host但保留pack、1000台账/4MiB正文/2MiB快照与core容量边界。临时库清理，来源真实性与长期掌握未测。
+- 主执行`node --test packages/dawn/tests/host-*.test.ts`：10/10。含真实stdio bridge子进程→随机loopback HTTP→v4合成库，2来源/revision3、冷开一致、EOF/SIGTERM后独立服务可查询；普通service token不能pair、executor不能authorize、跨socket凭据失效、Host/Origin拒绝、无retry/reconnect、固定错误及秘密不输出。协议测试覆盖role提升/额外字段/非法来源/大小/UTF8/pair注入/不完整尾帧。
+- 独立存储静态审查在覆盖快照未发现可证实P1/P2；传输独审发现两项P2：串行for-await在HTTP或drain等待中不能及时感知尾字节EOF；shape-valid字符串字段可反射owner/executor秘密。改为独立有界输入pump（128KiB/最多8排队帧）、EOF立即abort、10秒输出等待；非pair响应在持秘密client中扫描凭据并失败关闭。新增pending HTTP/背压尾字节EOF及真实stdio合法字段反射回归通过；第二位独审静态复核两项关闭，未发现修复范围新增可证实P1/P2。审查未运行程序，不是生产认证。
+- 主组合专项来源/host/serve/container-entrypoint/CLI **36/36**，日志`/tmp/dawn-host-dawn-final.log`；入口验证显式v4建库、v3拒host serve、相同路径/相同正文token拒绝、bridge固定argv不读model.env、不初始化/停止服务。最初Node擦除TS不支持parameter properties的语法错误已修为显式字段；没有把中途错误结果算最终通过。
+- 主`npm run verify:acceptance`：交流验收＋24项原学习专项通过；`verify:learning:offline`：两目标4次loopback假模型、答案隔离/独立本地评分/持久记忆/冷开/清理passed。不是实际供应商效果。`check:capabilities`无DB/model/server副作用，新增hostLearning4元数据；标准`npm run check`仍127 `tsc: not found`，未安装依赖。
+- 主最终`npm test` **397/397**、`npm run test:pi-package` **61/61**。Pi新增覆盖text提取/排除thinking/tool/system/custom/summary/附件、最新N完整块、冻结快照、24KiB精确边界，UI/注册/idle先验、准确正文预览、ctx.signal/session_start/关机/断开/分支和已预览文本变化迟到拒绝；fake Docker记录只exec host-bridge、无stop/delete。普通MCP readonly/write两模式均走status→confirm→authorize5分钟→accept→consume。私有child测试覆盖帧/会话字节/stderr上限、UTF8/ID/响应类型、EOF/取消/10秒默认超时、stream/process错误、SIGTERM→2秒SIGKILL回退与固定错误。
+- 独立Pi静态审查确认allowWrite=true原先阻断host-bridge的P2；改为复用验证的Compose前缀但移除普通写开关，配置/命令双模式回归通过，独审复核关闭，范围内未发现新增可证实P1/P2。中途实现的requestId作用域/类型、旧命令/skill断言和fixture换行错误修复后主复跑，不将未完成代理结果算通过。
+- 全量曾因真实墙钟校正出现consume时间早于主体updatedAt，按生产规则拒绝；拆分固定内部错误确认原因，未删除时间检查。来源测试改Node内建可推进Date mock，新增倒退时钟consume拒绝/状态、accepted标记、预算均不变的回归。最终17来源/397全量通过；真实时钟倒退仍会失败关闭，不承诺自动校时或重试。
+- 借用现有TS5.9.3、Pi1.4.0及Node声明、临时`/tmp/shuguang-pi-package-typecheck.json`的根严格`--noEmit`通过，仍不是干净安装。真实Pi1.4.0 DefaultResourceLoader隔离临时workspace/agentDir/inMemory settings、PI_OFFLINE，根/子包均2 commands/1 skill/零初始注册，真实registry connect/disconnect、无UI share读历史0，不写现有配置或调用模型/Docker。另由真实Pi命令经**假Docker exec适配**启动真实bridge/loopback服务/v4库：两来源、revision3、预算0、history0、来源角色分离、冷开一致，断开仍awake。脚本`/tmp/dawn-host-pi-{loader,complete}-smoke.mjs`与日志`/tmp/dawn-host-pi-{loader,complete}-final.log`，finally清理；不证明实际引擎或TUI。
+- 根全量/交流学习验收/离线学习/类型最终日志`/tmp/dawn-host-{full,acceptance,offline,typecheck}-final.log`；npm pack dry-run精确7文件（LICENSE/package/skill/src4），无归档/安装。根README唯一教程，当前实现差额写入host-capabilities首节/D-024/STATUS；链接、围栏、shell/语法、git diff检查通过。
+- 真实Pi/Docker/TUI/实际owner token配置、正式迁移、Web/run任务与自主网络学习仍未执行/未实现；跨重连来源恢复UI也未提供。不访问现有私有数据/密钥，未安装/部署/提交/推送，前轮333/24不替代本轮结果。
+
+## flow-design：来源与宿主桥设计收敛（仅文档）
+
+- 在既有host-capabilities主文档增加第11—18节，核对core Experience/evidence/cycle、SubjectService FIFO/owner say、LearningStore/runner与sqlite-subject v2/v3事件/预算/事务、现有Pi资源包与协议；同时核对Pi1.4.0 extensions文档和实际Context/SessionManager类型、pi-mcp-adapter6.0.0 runtime接口声明，不读取正式历史/凭据。
+- 选定私有宿主桥/owner-executor角色分离、一次性会话片段grant、公开输入manifest、同库v4候选及断开不删Docker，保留真实执行端/授权/失败不退款边界。第18节全部是拟运行验收，不是已通过测试。
+- 四份变更文档的Markdown围栏、5个本地链接、8节设计标题与关键边界检查通过，`git diff --check`通过；只是静态文档一致性，不证明运行行为。
+- 本轮没有修改运行代码/配置/DB、生成工程、安装、调用真实搜索/模型或执行部署；不重跑全量/类型，333/333与资源包24/24是前轮基线。未启动子代理或独立审查；不宣称新鉴权/存储/SSRF机制已实现或经安全认证。
+
+## Pi资源包与MCP连接管理（2026-10-22）
+
+- 用户要求以Pi包统一管理MCP和skills，新增`packages/pi-package`与根Pi资源清单、D-022；不恢复旧/dawn聊天薄层，不改变Dawn源码/协议/DB/预算，不自动读取历史或实现D-021执行桥。开发没有授权安装到现有Pi、Docker部署、真实联网模型或commit/push。
+- 主最终执行`npm run test:pi-package`：24/24通过；`npm test`：333/333通过。配置测试覆盖精确字段/绝对路径/控制字符/可选标识/严格布尔/固定argv/大小/UTF8/权限/最终symlink；扩展测试覆盖惰性加载、UI先验门控、只读/写确认、取消/迟到/断开/关机/并发/owned注册及错误脱敏。只是合成测试，不证明真实UI和Docker互操作。
+- `npm run verify:acceptance`交流验收与24项学习专项通过；`npm run verify:learning:offline`4次本机假模型、两目标、预算4/冷开一致/临时清理passed。原学习闭环未降级，不代表真实学习效果。
+- 本机已有Pi 1.4.0 `DefaultResourceLoader`，临时workspace/agentDir与inMemory settings，仅显式本地包来源、`PI_OFFLINE=1`：分别从根和子包发现1条命令、1个skill、零初始MCP注册；合成UI批准后真实宿主registry含固定Docker参数，disconnect移除；零模型/Docker调用，未创建agent mcp.json/settings.json，finally清理。脚本`/tmp/dawn-pi-package-smoke.mjs`；非正式安装/TUI/客户端联网验收。
+- `npm pack ./packages/pi-package --dry-run --ignore-scripts --json`使用临时cache，精确列出LICENSE/package.json/skill/src两文件，不生成归档；skill-creator现有Python校验器报告valid，未安装依赖。根/子LICENSE一致；真实Git源安装/下载行为未验。
+- 两段独立code-review分别审查配置/分发与扩展生命周期，并追踪Pi 1.4.0 loader/registry/内置MCP/TUI确认语义，范围内未发现可证实P1/P2；不作为动态或生产认证。已补充session_start新旧pending交叉、注销失败状态保留/成功重试、确认中UI消失三项回归并由主复跑；真实同名文件覆盖/异步关闭仍未端到端验证。
+- 本机已装`pi-mcp-adapter 6.0.0`文档`docs/extension-api.md`和index源码确认消费原生getMcpServers/mcp_servers_change，但未加载真实现有adapter配置或声称用户pirun动态联调通过。manifest可分发不等于运行环境有Docker权限。
+- 最终主复跑借用严格类型检查与两入口ResourceLoader smoke通过，日志`/tmp/dawn-pi-package-{full,focused}-final.log`；40个修改文档的本地链接、Markdown围栏、shell/TS语法及git diff --check通过。核对`packages/dawn/src`未改变、旧Pi聊天workspace仍删除、附件未读取/修改/暂存。
+- 标准`npm run check`仍exit127（本地tsc未安装）；借用TS5.9.3与本机Pi 1.4.0/Node声明的离线检查需显式paths/typeRoots，不是干净安装/最低版本认证。首次借用检查发现union窄化/可选字段类型错误，修复后主复跑严格`--noEmit`通过，配置`/tmp/shuguang-pi-package-typecheck.json`；未安装新manifest依赖。
+
+## 宿主能力接口设计（2026-10-22）
+
+- 按用户要求先定义借Pi Web检索学习的接口，新增docs/host-capabilities.md（设计v0，非可调用API），同步MCP/架构/路线图/状态与D-021索引。只文档，不更改已通过的MCP运行源码、底层协议/DB/学习runner，不执行检索、真实模型/安装/配置或commit/push。
+- 独立software-architect只读核对现有tools、CapabilityPort、learning runner/storage和Experience，纳入能力支持/在线/授权分开、claim前披露、可信执行绑定不进模型、claim ACK不重派、结果ACK与消费分开、模型与Web预算、provider内部调用/SSRF约束、sleep持久fence等建议。评估不是协议执行或安全认证。
+- 文档链接/fence/空白与设计边界一致性检查；未重跑全量/类型，309/309是前轮代码结果。本轮没有证明Pi现有web_search/fetch_content已满足窄契约，尤其真实网络端拦截/内部调用计数与可信桥尚未实现。
+
+## MCP优先开发分支（2026-10-22）
+
+- 从main b446014创建feat/mcp，接手时DSH分支76c7130保留不混入；用户只授权分支开发，不commit/push。删除Pi workspace，根测试/release manifest改mcp；本体集成改直接引用dawn客户端。core/runtime/adapter/model/协议和数据库源码均未改，pack学习/预算不降级；原未跟踪附件不读改。
+- MCP stdio无新运行依赖：tools-only受限实现，版本协商、initialized/ping/list/call、默认只读与显式写、精确参数和值校验/annotations、固定脱敏错误。帧64KiB、并发8、输出256KiB/16帧/1MiB、取消未结束仍占位、背压/UTF8/EOF/迟到/重复ID都有回归。不虚报HTTP/resources/prompts/sampling或对话学习。
+- 官方规范核查后补：2025-11-25无关联error省略id，旧协商版遇无法关联错误关闭会话；可识别notification即使额外字段也静默；未知/未暴露工具协议-32602，已知工具非法值isError且不派发；Unicode码点schema与额外UTF16领域限制分别说明/测试。
+- 独立审查发现P2：destroy(error)与close/abort同tick，移除最后error监听可能未捕获并泄漏原错误。已以每流共享脱敏sink修复，保留到close，预destroy亦覆盖；不销毁caller-owned流、不屏蔽caller自己的监听。隔离子进程四种竞态和30次复用/关闭释放通过；独立静态复核关闭，未发现修复范围新增可证实P1/P2。
+- 主真实stdio子进程→鉴权loopback HTTP→临时SQLite六核心：默认工具列表/写拒绝、显式wake/say、revision3/预算1、冷开一致；EOF与SIGTERM取消挂起生成，FIFO状态屏障后failed1/零经历/revision1，服务仍可查询。增加拦截fs.openSync的独立子进程，非法参数token读取0次、合法参数进入指定token读取1次，均固定脱敏无stdout；不拿同一catch输出当先验顺序证据。
+- Docker去Pi安装/入口/专属卷，保留dawn-data与健康检查；新增exec -T mcp子命令不加载model.env、无端口/socket/凭据复制；start就绪返回终端。部署独立静态审查范围无确定P1/P2，不替代实际Docker。setup等原行为保留。
+- 主最终`npm test` **309/309通过**；`verify:acceptance`交流+24项学习通过；`verify:learning:offline`四次假上游/两目标/清理passed；`check:capabilities`通过且databaseOpened/modelConnected/serverStarted均false。借用现有TS5.9.3及Node声明的根`--noEmit`通过；标准`npm run check`仍127缺tsc，不安装依赖、不伪造锁。日志`/tmp/dawn-mcp-{full-final,acceptance,offline,standard-check}.log`，临时类型配置`/tmp/shuguang-mcp-typecheck.json`。
+- 本机已有Pi MCP CLI隔离冒烟：临时HOME与PI_CODING_AGENT_DIR（不加载现有配置），PI_OFFLINE=1/禁止版本检查与遥测，临时私有token、随机端口假服务；`pi mcp list --json`exit0、connected、仅shuguang_status/model_status、无errors/stderr。脚本`/tmp/dawn-mcp-pi-smoke.mjs`finally关服务删fixture。证明握手/列举，不是TUI/真实工具调用/写操作/取消的Pi侧全认证。
+- 当前开发环境无Docker CLI/socket，未构建/下载镜像、实际Compose/exec/私有卷/容器信号验证，无正式主体/密钥读取、真实模型或外部检索、现有Pi配置修改、部署或Git提交推送。根README唯一教程，HTML仅标历史与修正路径，无新全图排版认证。
+- 未完成：来源分离/会话授权对话学习、检索任务/能力委派、HTTP MCP、多用户权限/独占/长期质量。allow-write是本地暴露而非ACL；say仍owner语义，不应用作自动采集后门；UNAVAILABLE未细分。下文是main历史记录，不代表旧Pi路径在本分支继续存在。
+
 ## MIT许可与公开设置（2026-10-22）
 
 - 用户选择“允许商用、保留署名”方案2，使用标准MIT全文（Copyright 2026 swordfate3）；根/双workspace标注MIT与作者，README说明保留版权/许可而非界面强制署名，Docker允许列表及COPY携带LICENSE。保留npm private:true，不将GitHub公开等同npm发布；第三方依赖许可不被替换。

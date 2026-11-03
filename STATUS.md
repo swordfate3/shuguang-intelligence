@@ -1,93 +1,41 @@
 # 当前开发状态
 
-最后交接：2026-10-21。状态是交接摘要，不替代源码与重新验证；只记录真实结果，不自动执行任务。
+当前分支`feat/mcp`，从main `b446014`创建；`feat/dsh-plugin`保留不混入。MCP、Pi包、来源和研究均为本地未提交工作树，未commit/push或部署。用户已另授权把本地Pi资源包注册进当前容器的个人Pi配置；这不等于Dawn／网关已部署。证据见[verification](docs/verification.md)，教程只维护根README。
 
-## 当前目标
+## 最新：HTTPS远程MCP接入（D-026）
 
-0.1.0：独立数字伙伴的六核心交流、持久记忆和**自主学习**闭环。用户已明确学习必需，不能以仅交流版宣布首版完成。源码与合成离线验收已完成；此前用户已授权本机初始化/启动并加载模型配置。新增Pi薄接口的运行中模型/thinking选择已实现并离线验证，尚未替用户重启现有服务或加载真实Pi TUI。当前模型生成兼容性、真实学习质量、长期部署及Release仍未完成。
+- 用户明确纠正远程客户端不应依赖Docker／宿主目录并授权优化。新增 `packages/mcp/src/http-{server,config,main}.ts`，标准Streamable HTTP `/mcp` JSON-only，GET405、独立接入Bearer／随机session／准确Host-Origin／并发与超时限额。复用现有八工具及DawnTransport，不开DB、不初始化／唤醒主体、不开放owner私有桥。原stdio保留兼容。
+- Pi配置支持 `{version:1,url,credentialEnv,allowWrite}`，仅HTTPS／环境引用；远程确认不读凭据、无Docker要求，客户端工具暴露不能升级服务端权限。远程share/research在读历史／计划／创建私有child前失败关闭，未远程化能力不伪称可用。
+- 新 `compose.mcp.yaml` 为显式opt-in，sidecar共享Dawn网络／只读原卷，宿主loopback发布7342给可信TLS反代；不把内部Dawn／owner接口公开，不挂Docker socket。新增独立MCP token排他创建入口，不重建DB。整个私有卷可读／同Compose网络可信是部署边界；首应用overlay可能重建Dawn容器，需维护窗口。
+- 真实loopback完整对话已验证：网关→Dawn HTTP→临时六核心SQLite／假模型，显式wake／say、budget1、revision3、断开后仍awake／冷开一致。借已有MCP SDK 1.32.1完成initialize/list/ping/DELETE，另经过实际本地HTTPS反代、临时证书显式CA校验验证，未关闭TLS验证、无公网访问／模型调用。
+- 主最终全量 **512/512**、MCP **52/52**、Pi **124/124**、容器入口组合 **8/8**；原交流／pack验收与离线学习通过。独立静态审查两项P2（Caddy路由遮蔽、header截断漏Origin）修复／补回归／复核关闭，非生产认证。详情见verification最新节；标准npm check仍缺本地tsc，借用严格检查通过。**尚未正式部署域名／证书／Docker overlay，用户现有运行容器不会自动变成HTTPS服务。**不修改正式库／真实key、不安装依赖或commit/push。
 
-## 已完成
+## 前轮：关键后半段的有界公开研究
 
-- 六核心纯规则；typed 候选、来源/作用域校验、工程情感、记忆召回、意图和受限成长规则。
-- 独立 CLI/鉴权 loopback 服务/可选 Pi 薄窗口；本体不依赖 Pi。
-- v2交流统一主体库；v3学习新库复用同一主体和总预算，保留旧格式，不自动迁移。
-- 一次资料/预算授权后自主选题 → study笔记/练习 → assessment本地独立评分 → 保存结果并推进下一目标。
-- 同主体学习记忆可在中文主题普通交流中召回；私有答案键不投影、学习不冒充聊天。
-- 重启接续、共享永久额度、显式停止/恢复、取消与迟到拒交、原子回滚、篡改和容量边界回归。
-- 开发接续文档：AGENTS / STATUS / ROADMAP 与 README 导航。
-- 详细架构图：docs/architecture.html，离线单文件展示当前源码结构、流程和边界，非运行控制台。
-- P0准备：可复现/干净安装方案、真实学习授权与判定方案、四次loopback假模型独立验收和成功/失败/取消清理回归。
-- 模型配置向导：参考Pi分层体验，独立TTY引导选择用途、入口、模型、凭据环境变量名与运行限制，预览后新建0600配置；既有交流/学习命令直接复用，不自动发现Pi或发送请求。
-- Pi薄接口 `/dawn model`、`thinking` 选择器与直接参数、`models`显式远程目录及`model-status`；曙光服务FIFO/独立选择CAS，复用原adapter不重置次数、无自动重试。仅服务进程内共享，重启读配置，off仅省略参数、不认证模型能力。
+用户明确要求“把关键后半段进行实现”。已落盘：**主体排序获准公开问题 → 宿主claim一次搜索 → 收据接受 → 曙光自己的模型学习/练习 → 隔离held-out测验或待验证 → 同主体原子保存 → 有界继续/停止**。
 
-## 当前停点
+- 新`core/research.ts`、`runtime/research-store.ts/research-runner.ts`、`adapters/storage/sqlite-research.ts`；显式`research-learning-init`新DSW2 v5，保留pack与v4来源。默认Docker setup/learning-init仍v3，旧v2/v3/v4不升级，不重建正式主体。
+- owner准确批准1..8问题/query、最多8搜索/32模型阶段/截止；私有状态只用于排序，不从记忆自由拼新query。模型不能改manifest/权限/费用/评分。开放问题无私有assessment最多verification_pending，completed不等于全通过或通用掌握。
+- 同库run/task/receipt/model attempt/audit、claim CAS先预占、重复收据hash幂等、receipt不隐式生成。chat/pack/research模型共享永久预算和单pending；失败、取消、未知不退。来源/笔记/本地评分/typed事件/snapshot同事务，冷回放核对；不入chat history、不批growth。同网页canonical去fragment共根，变化摘录依赖旧根。
+- 私有host v1新增研究请求，普通MCP仍八工具。owner start/status/stop/resume与executor next/claim/submit/step/pause分离，秘密容器内；后台仅一次35秒phase，不占host FIFO等待模型，pendingModel明示在途。
+- Pi新增用户命令`/shuguang-research`，有UI/已注册/idle/显式安全plan/provider可用/准确公开输入预览确认后运行；不读取Pi历史、不借Pi主模型、不暴露任意工具。固定Tavily适配已写，全部测试假DNS/HTTP响应，不真实联网。
+- 固定provider HTTPS主机、DNS全部公网检查与pin、SNI/TLS验证、无Cookie/代理/redirect/retry/fetch；8秒/128KiB响应/3项/32KiB规范材料。供应商content诚实标host_summary/inference，不冒充网页原文。合法字段反射key也拒绝，含JSON转义凭据回归覆盖。
+- 断线/绑定到期主动abort并持久pause/fence，sleep/stop拒迟到，不stop/delete主体。崩溃须先停止全部同库旧服务/runner，再显式research-recover；普通serve和read-only open不隐式接管，重复启动不破坏活跃研究。unknown搜索/模型收费终止不重派，resume仅未派发或accepted未生成阶段。
+- 64runs、最多8tasks/24材料每run、8192研究审计事件/16MiB，普通操作留fence/fail/terminal控制余量；2MiB快照/1000core集合保持，超限拒绝不遗忘。
 
-用户确认许可方案2：允许商用但保留作者署名/版权与许可，采用标准MIT（Copyright 2026 swordfate3），不是禁止商用或额外商用授权。新增LICENSE、根/双workspace license/author、README解释，镜像允许列表及COPY包含LICENSE。npm private:true仍保留防误发布，与GitHub可见性无关。用户同时授权仓库公开；当前浏览器未登录，配置的HTTPS credential helper无可用GitHub凭据，无GitHub管理API权限，公开操作受阻，不能把SSH推送成功当公开成功。协议文件先按授权提交推送，实际hash/同步以Git为准，不新建其他教程或安装认证工具。
+## 验证与审查
 
-用户已明确授权提交并推送当前最新源码到origin/main，本轮发布内容为Docker封装、Linux一入口/统一设置及单README教程。提交前重新执行全量308/308、交流+24学习验收、四次假上游离线学习及借用宿主TS5.9.3检查均通过；敏感文件范围与暂存检查另见verification。此记录取代下文历史“未授权commit/push”停点，实际提交hash/远程同步以Git为准。收到Pi fd/ripgrep首次下载超时与曙光UNAVAILABLE反馈，均未修复/未定位，不通过本次推送冒称解决。未真实构建/部署、未调用真实供应商、未迁移数据。
+主最终全量 **484/484**、Pi **118/118**、研究存储 **20/20**、研究集成 **10/10**通过，计数与日志见docs/verification；测试均临时目录/假模型/loopback，未读正式库、key或历史。主已跑真实Pi executor→stdio child→HTTP→临时v5两目标/四phase闭环、原pack验收及严格借用类型检查；真实Pi ResourceLoader根/子包3命令/1skill/无UI不读历史，子包dry-run精确9文件。
 
-按用户最新要求，部署与使用教程仅保留根目录README.md：WSL/Linux Docker单一路径，包含首次设置、容器Pi/显式唤醒交流、日常启停、可选学习、更新与数据注意事项。已删除单独Docker教程与旧源码部署手册，不保留副本；清理文档索引/架构/决策引用。仅修改文档，校验README命令块语法/本地链接及删除文件引用，不执行部署/初始化/真实调用，不重跑全量或类型检查。上一代码轮308/308为历史基线，Docker实际部署/commit/push仍未执行。
+- 存储审查确认审计边界fail+terminal回滚与fragment假独立根两项P2；修复并补合法7999事件边界/共享slot释放/冷开、canonical URL/共同根回归。
+- 运行/请求适配审查确认绑定过期不主动fence、普通serve隐式接管活跃研究、JSON转义key反射三项P2；已加主动期限取消、显式recover替代自动接管、解析字符串扫描和对应合成回归。审查是静态有限快照，不是生产认证。
+- 既有交流、本地pack、来源分享、MCP与卸载不动Docker语义保留；前轮397/61/17/10及Pi ResourceLoader冒烟为历史基线，不能替代本轮复验。
+- 标准npm run check因本地未安装tsc仍有限制；可借现有TS5.9.3/Pi声明严格检查，不代表干净安装或最低Node矩阵。
 
-上一代码任务按用户的WSL/Linux Docker实际环境进一步收敛部署：新增`bash start.sh`统一首次构建/容器setup/启动就绪/进入Pi，复用已运行服务；`status/stop/build/help`同入口，无sudo/安装/自动git pull或删除卷。统一setup补缺配置、不覆盖旧主体/凭据；首次写入需确认，不自动wake/生成/学习。README为Linux使用入口，原先分散的部署教程已按最新要求合并到README并删除。最终全量308/308、setup9/9、launcher8/8、入口5/5、真PTY设置6/6与借用宿主类型检查通过；独立有限快照审查确认取消exit1/最终预览后yes门控，范围内无未关闭可证实P1/P2。详细结果见verification；本轮仍不构建/部署/迁移正式数据或push，真实Docker验证仍受环境限制。以下为前轮Docker封装记录。
+## 未实现／未验证
 
-前一任务新增Docker部署封装：Dockerfile/Compose、非root单容器/loopback无端口发布、三个命名卷、dawn-container显式初始化/离线模型向导/隐藏key录入/serve/Pi/request/学习入口，以及Windows PowerShell→容器配置教程。首次模型配置由用户确认，启动不自动init/wake/生成/学习；不导入宿主Pi或正式主体。容器key变量限定*_API_KEY，启动前校验单绑定model.env格式，拒绝Node/OS控制环境注入。已有本机服务/数据未改，未执行安装、构建或迁移。
-
-Docker专项11项、真实PTY隐藏录入5类、完整回归290项及借用宿主类型检查的最新结果见verification；当前没有Docker CLI/socket，无法实际build/compose/Windows/Pi镜像内复验，不以宿主测试替代部署。README与Docker代码均尚未提交/推送，上一轮远程main为e4ece33。本轮不再仅为文档修改，前一段README文档阶段记录如下。
-
-前一轮仅更新README使用教程：按远程拉取→首次v3/v2分支→模型向导/私有env-file→前台服务→本地Pi包安装/连接脚本→Pi输入框选择/交流→独立CLI/学习/停止/升级排错重排，明确本机wrapper不随仓库分发。文档本地链接、15段shell语法及合成临时v3/token/env-file/加载模型/HTTP状态/唤醒/零调用预算冒烟通过；没有安装Pi包、操作正式数据或真实供应商。本轮没有源码变更，未重跑全量；279项是模型控制版本既有基线。README修改尚未提交/推送，上一轮模型控制代码已推送main的e4ece33；远程状态以Git为准。
-
-用户要求启动曙光，随后明确提供入口和临时key授权代配置。已在持久卷 `~/.local/share/shuguang-intelligence` 新建v3主体dawn/曙光（总额度20、学习子额度4、示例合成pack），生成私有服务token；启动127.0.0.1:7341无模型服务并wake，实查awake/revision1、所有调用计数0、经历/记忆0。随后已在私有目录配置用户提供的入口/凭据，初先沿用历史模型，后按用户要求鉴权GET /v1/models发现其不在列表，已私有备份并改为列表中的deepseek-v4-pro/low/30秒/maxCalls4、重启服务（模型参数/生成契约仍未真实验证）；没有真实生成、学习执行或开机自启。PID/log/本机操作说明在私有目录；重启容器需手动启动，不把PID文件当租约。
-
-持久入口 `~/.local/bin/{dawn,dawn-serve,dawn-stop,dawn-model-config,pi-dawn}` 已准备。当前model.json/model.env已私下保存并加载，dawn-stop核验完整argv后停止PID记录对应的服务，dawn-serve可前台重启。Pi包装命令--help退出0不等于真实TUI端到端验证；未自动修改Pi全局配置。详细本机交接见私有目录START-HERE.md，不读取凭据正文。
-
-本轮按用户要求实现外侧模型/thinking选择：协议/CLI/HTTP客户端、两类服务、同实例adapter目录与选择、Pi确认/选择器/取消均已接通。目录仅显式GET、1MiB/128条/ID256字符/48KiB列表/8秒期限；失败保留缓存，控制10秒仍含排队。未更改本机私有配置/数据库、重启服务、读取真实key、发真实目录或生成；已有进程仍是先前代码，使用新增命令前需手动重启，Pi需重载扩展。
-
-此前配置向导247项基线、真实PTY6项为历史结果。本轮新增模型控制/端到端回归，最终结果见下表及verification；独立有限快照审查未发现未关闭的可证实P1/P2，主补排队取消组合与UI→真实Dawn服务/SQLite/adapter闭环。标准check缺tsc限制不变，仍仅Chat Completions，无Pi配置导入、多提供商管理、OAuth或自动生成探测。此前P0已完成；依赖安装/真实学习执行仍待授权。
-
-## 最近验证基线
-
-| 项目 | 已记录结果 | 范围 |
-|---|---|---|
-| `npm test` | Linux部署简化本轮308/308通过 | 含setup9/launcher8/入口5/管理7；非真实Docker构建 |
-| 模型控制专项 | 本轮通过，含最终全量 | 目录边界/取消/缓存/重定向、共享额度、CAS/FIFO/排队取消、CLI/协议/选择器 |
-| 真实PTY合成烟测 | 统一setup本轮6/6通过 | 保存/no/EOF/密钥Ctrl+C/Ctrl+D/SIGTERM；终端恢复/无回显，非Docker或Pi TUI认证 |
-| `npm run verify:acceptance` | 本轮交流与学习组合通过 | 临时库、loopback假上游，原组合范围不变 |
-| `npm run verify:learning:offline` | 本轮通过 | 两目标4调用；笔记/评分/记忆、精确冷开、完成后零调用、持久停止和清理 |
-| 新离线验收专项 | 本轮3/3通过 | 成功、假上游失败/内部取消、IPC就绪后SIGTERM |
-| 模型配置独立审查 | 未发现可证实P1/P2 | 配置/CLI与最终TTY/向导有限快照；非动态认证 |
-| 标准 `npm run check` | 失败127：tsc未找到 | 未安装开发依赖 |
-| 替代离线 TypeScript `--noEmit` | 本轮通过 | 借用宿主TS5.9.3与Node/Pi声明，覆盖根配置；非标准干净安装 |
-| 学习专项独立审查 | 既有两项P2修复并窄复核关闭 | 完整episode容量、readonly测试类型 |
-| 本轮离线验收独立审查 | 一项P2修复并窄复核关闭 | readiness后等待有界取消屏障，父延迟测试通过 |
-| 真实API | 仅此前一轮严格JSON交流及冷重启成功 | appraisal=null/candidates=[]；无真实自主学习质量证据 |
-
-详细证据见 [docs/verification.md](docs/verification.md)。重排版保留9个内容章节及151个本地链接/锚点；静态唯一ID、链接与内联脚本语法检查通过。隔离浏览器检查1440/1024/768/390/320px及1440/390/320px下200%字体放大，展开完整索引后未检测到正文文字矩形交叠、节点内容溢出或页面横向溢出；主题/打印媒体/禁用JS检查通过。首版仅检查SVG画布边界未能排除图内重叠，已根据用户反馈撤换，不再作为视觉验收依据。上述视觉结果属于此前架构页重排版；本轮模型配置改动的测试/类型检查另按表中本轮结果记录。
-
-## 已知问题与阻塞
-
-- Docker CLI/socket不可用；未实际build/compose/Windows终端/Pi镜像内验证，镜像供应链未完全锁digest/传递依赖，不能称可复现部署。首个有Docker环境的执行者应按README.md验证首次卷权限、配置、Pi加载、信号与重建保留。
-- 项目开发依赖未在此环境干净安装，无锁文件；标准 `npm run check` 缺本地 `tsc`。宿主替代检查不能证明依赖安装可复现，也未在最低Node24.0.0复验。
-- 尚无真实模型学习评测；1024输出token、严格JSON、模型实例maxCalls及超时均可能导致实际失败，不允许自动重试掩盖。
-- 仅本地pack前台学习；pack文本保守拒URL/路径。无任意搜索/工具、后台长驻、人格自动晋升或权重训练。
-- 2MiB快照/常规集合1000项；无自动遗忘/压缩，v3每次完整回放，长期容量/性能未验证。
-- 无跨进程独占租约、恰好一次交付或自动迁移；数据未加密、无内置删除。学习台账暂不记录逐call modelId/token用量。
-- 本机已有正式新主体及此前加载模型的进程；新增选择控制尚未重启应用到该进程。当前模型无真实生成/真实Pi TUI/RPC端到端、自动启动/长期部署、Git tag或包发布证据。用户已授权向 `https://github.com/swordfate3/shuguang-intelligence` 提交源码；项目已初始化独立Git仓库和main分支，origin使用该仓库的SSH地址。具体提交与同步状态以Git记录为准，不含父工作区其他项目及被忽略的本地配置/运行数据。
-
-## 下一项可执行任务
-
-**部署当前门槛：**在有Docker引擎与Compose v2的WSL/Linux验证副本中，明确允许联网构建后执行`bash start.sh`，检查首次卷权限/统一设置/取消/启动/重启接续/Pi加载及停止；采用合成主体，真实API调用另确认。此环境无Docker，不能将该步骤记为通过。现有主体迁移与本轮commit/push另行授权。
-
-**研究与复现P1：确认授权后，分别执行真实学习链路与干净环境复验。批准前不执行。**
-
-1. 按 [真实学习方案](docs/learning-evaluation.md) 确认具体endpoint/model/reasoning、合成资料披露、最多4次生成与费用、私有临时目录及留存。只证明真实链路，不宣称学习收益。
-2. 按 [可复现方案](docs/reproducibility.md) 确认持久验证副本位置、Node/npm/Pi精确版本、联网安装及脚本策略，再生成真实锁并第二空副本复验；不修改唯一工作树或宿主。
-3. 两项可分别授权；均不默许正式主体、迁移、部署或发布。若试验失败，准确记录收费/结果并停止，不自行重试。
-
-验收：实际结果与未跑项分别可追溯，更新本状态与验证记录。用户另有指令时，以最新任务为准。后续优先级见 [ROADMAP.md](ROADMAP.md)。
-
-## 下一次交接需更新
-
-- 当前目标/在做任务及涉及文件；未完成代码与代理归属。
-- 实际验证命令、结果、运行环境；未运行原因，不沿用旧测试数冒充新结果。
-- 新风险、需要的授权，以及一项具体的下一步。
-- 不复制密钥、完整环境、私人学习资料或海量日志。没有新增操作授权时，在授权边界停止。
+- **完整产品目标尚未全部实现：**自由提出新query并重新授权、私有会话自动生成研究问题、web.fetch、连续历史监听、无人值守常驻研究未提供。当前是在准确获准公开问题池中自主选择和推进，不是假称开放自主意识。
+- 未真实调用Tavily/模型验证API兼容、搜索收费、搜索质量、独立测验效果或长期成长；供应商内部访问/费用不能由宿主HTTP次数证明。
+- 无正式迁移、跨进程租约、跨binding来源批次恢复UI、多用户ACL、加密/安全删除、无限容量、网络恰好一次保证。同UID/Docker管理员可信边界保留。
+- 环境无Docker CLI/socket，未构建镜像/Compose/真实exec/用户Pi TUI联调，不盲挂socket或安装空白Pi。
+- 本地Pi包已按用户授权注册；未部署Dawn／HTTP网关、未正式库迁移或提交推送。普通远程聊天不要求v5迁移；来源／研究真实启用仍需另确认provider/key注入、费用和v5正式迁移方案，不能重建唯一主体绕过。

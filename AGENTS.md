@@ -4,7 +4,7 @@
 
 ## 产品目标与不可降级项
 
-- 曙光是独立于 Pi、单次模型调用和开发会话的数字伙伴；Pi 只是可选薄窗口。
+- 曙光是独立于交互窗口、单次模型调用和开发会话的数字伙伴；本分支feat/mcp移除旧Pi聊天薄扩展，以MCP接入现有客户端；可选Pi资源包仅管理MCP连接与skills，客户端不是主体本身。
 - self / cognition / affect / memory / agency / growth 属于**同一个主体**，不是六个 Agent、模型或服务。
 - **0.1.0 必须包含自主学习**：一次授权资料与预算后，自主选题、学习/练习、独立测验、保存结果、继续或停止。不得自行降为后续功能，也不得仅靠总结或自报“学会”替代闭环。
 - 当前学习限定为授权本地 pack 内的有界前台运行。扩大到联网、工具或后台运行须明确范围与权限，不能以“自主”为由默认开放。
@@ -21,11 +21,12 @@
 
 ## 技术与依赖边界
 
-- Node.js >=24、严格 TypeScript、npm 双 workspace、内建 `node:sqlite`；不为便利擅加框架、依赖或数据库。
+- Node.js >=24、严格 TypeScript、npm 三 workspace（dawn/mcp/pi-package）、内建 `node:sqlite`；不为便利擅加框架、依赖或数据库。
 - `packages/dawn/src/core/` 为无外部 I/O 的领域规则，不依赖 runtime/adapters/legacy/Pi；runtime 编排，adapters 负责模型、存储和传输。
-- Pi → dawn，不能反向依赖。Pi 不代答、不复制人格、不发送自己的会话历史、不自动启动本体。
-- 应用版本 0.1.0、协议 v1、领域 schema2、SQLite v2交流/v3学习及 legacy v1是不同契约；更改其中之一不自动授权其余升级。
-- 既有 v2/v1 库不自动迁移、重建或覆盖。学习 v3 必须显式新建，不能冒充旧主体无损延续。
+- `pi-package`分发skills、管理会话MCP注册；显式`/shuguang-share`在UI预览授权后读取当前分支有限text块；`/shuguang-research`准确公开manifest确认后执行固定搜索/有界阶段，不读取Pi历史。均通过私有桥，不自动监听。不恢复/dawn、注册模型工具、启动本体或发现凭据；其Pi类型仅开发依赖，不进入Dawn/MCP镜像。
+- MCP适配层 → dawn，不能反向依赖客户端。客户端不代答、不复制人格、不自动发送会话历史或启动本体。来源导入走独立owner/executor私有桥与精确批次授权，不能用say替代。v5已实现获准公开manifest/search任务与分phase学习测验；自由新query、web.fetch、私有对话自动提问及真实联网验证未提供。
+- 应用版本 0.1.0、普通协议 v1、私有host协议 v1、领域 schema2、SQLite v2交流/v3学习/v4来源/v5研究及 legacy v1是不同契约；更改其中之一不自动授权其余升级。
+- 既有 v1/v2/v3/v4 库不自动迁移、重建或覆盖。学习 v3、host-learning v4与research-learning v5均须显式新建，不能冒充旧主体无损延续；默认Docker setup仍v3，正式迁移未实现。
 
 ## 不可绕过的运行约束
 

@@ -8,7 +8,7 @@
 
 `dawn.example.json` 仅展示未来配置的安全形状，当前应用不会读取它，也不启用任何模型或 transport。当前 SQLite 持久化由 CLI 参数显式控制，不从该配置读取数据库路径。
 
-`autonomy` 保持禁用。改配置文件不会启动服务或启用聊天、模型、自主能力。服务由显式 serve 参数启动，Pi 客户端由 DAWN_ENDPOINT 与 DAWN_TOKEN_FILE 配置，见[本机服务说明](../docs/local-service.md)。SQLite 也不会因为配置文件存在而自动创建：必须由用户手动执行 `init`，并提供绝对 `--db` 路径；父目录须已存在。推荐路径与命令见[持久化说明](../docs/persistence.md)。
+`autonomy` 保持禁用。改配置文件不会启动服务或启用聊天、模型、自主能力。服务由显式serve参数启动，本分支MCP客户端使用明确endpoint/token-file（容器入口代填），不再提供Pi薄扩展环境变量入口，见[本机服务说明](../docs/local-service.md)。SQLite 也不会因为配置文件存在而自动创建：必须由用户手动执行 `init`，并提供绝对 `--db` 路径；父目录须已存在。推荐路径与命令见[持久化说明](../docs/persistence.md)。
 
 示例不含密钥；模型凭据只通过 `credentialEnv` 指向环境变量名称，不在配置中放 key、token 或 secret。不要依赖 dawn.example.json 改变程序行为。
 

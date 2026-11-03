@@ -1,5 +1,37 @@
 # 架构决策记录
 
+## D-023：可信来源与宿主桥设计收敛（仅设计，未实现）
+
+- 按flow-design继续既有host-capabilities主文档，第11—18节选择普通MCP八工具＋私有typed宿主桥；owner UI管理与executor权限分离，不让现有service token/role字段冒充可信身份。原MCP不增加grant创建或暴露claim秘密，不缓存tool ctx伪造后台搜索权限。
+- 会话先采用当前活动分支选定text块、准确预览后一次性批次授权，不监听全部历史；来源台账定位/hash去重，user_statement与Pi inference分离，不经say、不增本主体chat history；无模型生成的本地原子消费与接纳分离。
+- 自主query先由owner批准公开seed/术语/模板生成，任意新文本候选等准确输入批准；provider固定适配在实际请求端实施预算/SSRF/无登录态/重试限制，无法保证就不登记。开放网络无独立测验只标verification_pending，不自批growth。
+- 选择DSW2 SQLite v4候选保存同库来源/grant/run/task/receipt/新模型attempt，保持domain2和原wire v1；旧v2/v3不自动迁移，正式迁移需停写、验证副本及独立批准。现有pack及永久总额度不降级/重置。
+- disconnect/卸载/退出仅关闭Pi接入与bridge/binding，不stop/sleep/delete曙光Docker、镜像、卷或记忆；有效grant不等于在线执行许可，未知外呼不自动重派。来源快照与假检索切片可先验证，真实pirun/provider/迁移另确认。
+- 本轮只设计及静态文档检查，不新增运行接口、代码、数据库、安装部署或真实调用。详见docs/host-capabilities.md；拟验收不冒充已通过。
+
+## D-022：Pi资源包统一分发MCP连接管理和skills
+
+- **范围：**用户后续要求以Pi扩展安装包管理MCP并附带skills。新增`packages/pi-package`与根Pi资源清单；这不是恢复已删除的`packages/pi-extension`或`/dawn`聊天窗口，不让Dawn依赖Pi，不把Pi装回镜像。
+- **职责：**扩展只注册`/shuguang-mcp connect|disconnect|status`，固定Docker exec stdio入口；connect显式绝对配置路径（或启动器提供环境引用）、有UI确认后注册本会话MCP，默认只读，不自动重连/启动/安装/修改mcp.json。配置不含token/API key；取消/断开/关机拒绝迟到确认。
+- **分发：**Pi package声明extensions与skills，未来增加skills沿用同一资源包；当前附带shuguang操作skill，不写入主体记忆或自动执行学习。本地安装或Git整仓均由Pi包管理，不伪称已npm发布。
+- **边界：**`status`是注册元数据不是健康；文件同名条目优先，替代内置MCP的适配器需支持动态注册。访问Docker本身是强权限，allowWrite仍非细粒度ACL或逐次批准，可信项目/context/PATH由owner负责。无源历史/搜索桥/新grant或数据库修改，不替代D-021执行桥。
+- **验证：**Node合成配置/生命周期与竞态测试、宿主Pi离线加载检查，真实Docker/用户pirun和TUI交互仍须另验。不自动安装到用户Pi或commit/push。
+
+## D-021：宿主检索能力窄契约与持久任务交接（设计，尚未执行）
+
+- 按用户后续要求，曙光自主学习可提出Web检索问题，由Pi可信桥调用固定web_search/fetch_content适配，MCP负责list/claim/submit/status，不经sampling或万能execute继承全部工具。接口详见docs/host-capabilities.md，未注册新工具/改运行代码或DB。
+- 可信控制面grant与执行方登记分离；模型不能创建授权/伪造身份。默认公开无登录态搜索与文本读取；对话供给单独授权和可信来源，不走owner say。若执行端无法限制真实网络请求/内部调用数，则不得声称满足策略。
+- claim先持久预占/CAS后最小披露，任务/执行绑定/run fence/期限各有职责；claim ACK核对不等于再次外呼，崩溃不自动重派。结果接收去重与主体消费独立，不以ACK声称学会，不让网页/摘要自批growth；sleep/stop/revoke/EOF分别定义。
+- 本轮仅契约设计和文档检查，沿用既有本地pack闭环，不增加真实联网/费用/模型调用、安装/部署、迁移或commit/push授权。
+
+## D-020：MCP优先分支与受限stdio接入
+
+- **范围：**按用户要求从main b446014创建feat/mcp，删除Pi专用薄workspace/测试与镜像内Pi，专注MCP；保留main与独立DSH分支不修改。不改core、底层wire v1或数据库格式，不迁移正式数据。不因开发授权默认commit/push/安装/部署。
+- **第一阶段：**新增无运行依赖的MCP tools-only stdio适配，桥接已有鉴权loopback服务。Docker客户端通过exec -T在同容器运行桥接，无新增端口、宿主socket挂载或token复制；本地Node模式显式endpoint/token-file。服务生命周期仍独立，不随MCP退出sleep/停止。
+- **授权：**默认只读status/model_status，显式allow-write开放六个写/联网工具；annotations不是确认或授权，宿主需另设策略。底层token仍单一权限，此开关不保护恶意同UID或任意Docker执行方。输出可能进入宿主模型，不隐式提供完整记忆。
+- **未来目标：**用户要求从获准的用户/Pi交流中学习并借检索自主探索。第一阶段仅接入骨架，不用say冒充该目标完成；下一阶段须来源区分、会话范围授权、可撤销能力、检索任务账本、预算和独立验证，不能默认继承所有MCP工具。现有本地pack闭环保留，不降级首版学习。
+- **覆盖关系：**替代D-009/D-017中的Pi专用窗口、D-018/D-019中Pi镜像/三卷/启动后进入Pi部分；其事务、单主体、显式设置、失败不退款及部署授权约束继续生效。旧Pi卷不挂载也不删除，运行教程仍仅根README。
+
 ## D-019：WSL/Linux 单入口启动与显式首次设置
 
 - **动机：**用户实际在WSL Linux终端用Docker；把进入Bash、init、model-config、credentials、up、exec拆开仍过于繁琐。以`bash start.sh`作为正常入口，不新增Web后台或重构主体。
@@ -136,3 +168,30 @@
 - **上下文：**只回放已完成问答的最近完整连续后缀（8 对/24000字符），本次输入加历史最多40000字符；不发送 Pi 历史或私有主体字段，用户/助手 role 标记保留，不作为已验证事实。
 - **事务：**生成前原子预占收费并去重 requestId，错误/取消/崩溃不退次数；回复及 usage 在最新预占序号检查后原子提交，提交成功才回复。未完成请求不进历史；失败用户输入仍存在台账，明确文档告知。超限后需另行明确管理，不自动重置或续期。
 - **限制：**次数额度非货币/token预算；同ID复制/恢复/替换新库可改变历史，非防篡改计费。跨库生命周期检查非联合事务，不保证其他进程 sleep 与对话完成强原子或即时抢占。多人会话、遗忘/删除、摘要提炼、跨进程独占与持久费用结算仍未实现。
+
+## D-026：HTTPS Streamable HTTP为远程接入，stdio只作本地兼容
+
+- **状态：**用户纠正客户端不应依赖服务部署位置，并授权优化；本轮实现源码／隔离验证，不自动安装反代、配域名证书、公开服务、操作正式库或commit/push。
+- **决策：**远程客户端只持HTTPS `/mcp` URL及独立接入Bearer；不需要Docker／宿主路径／数据卷。标准tools-only Streamable HTTP以POST单JSON响应、GET405、随机session／DELETE结束接入；不提供SSE／重放、OAuth或多用户ACL。内部Dawn HTTP仍loopback，不冒充公网MCP。
+- **部署：**显式独立gateway adapter复用既有tools/DawnTransport，无新框架依赖、不另开主体或DB；TLS在可信反代终止，准确Host／Origin及独立鉴权，不信X-Forwarded头。独立access token不能等于service token，owner token不进远程接口。默认Compose不变，overlay显式共享服务网络与只读原卷、仅宿主loopback发布网关；反代部署及卷管理员可信，不声称文件级隔离。
+- **客户端：**Pi配置精确区分URL＋credentialEnv／本地Docker两模式，注册前UI确认，不读发现／输出秘密；allowWrite仅收窄客户端工具暴露，不能升级服务端启动开关。普通MCP八工具及原状态／预算／同主体事务保持。share/research私有桥未远程化，远程模式明确拒绝，不误称全产品已远程可用。
+- **失败语义：**HTTP断线不等于取消，不自动重发／退款；显式取消／会话结束不撤回已提交状态。保留原stdio及本地私有桥，不因换传输重建主体。网关退出只移除接入，不stop/sleep/delete独立服务。
+
+## D-025：获准公开问题的v5有界研究，不冒充自由自主联网
+
+- **状态：**用户明确要求实现关键后半段；新增源码与合成验证，未真实联网/付费、安装、迁移、部署或提交。此决策取代D-024“全部研究仍未实现”的当前状态，不覆盖其来源授权规则。
+- **范围：**主体从owner明确批准的1..8问题/query中按兴趣/关切/未覆盖主题排序；Pi可信私有执行桥只做固定search，一任务一次claim先预占，receipt接受后由曙光自己的模型分study/assessment。不是Pi主模型代答，不支持任意tools、web.fetch、自由query拼接、由私密历史自动生成公开检索或常驻后台。
+- **版本：**显式research-learning-init新建DSW2 v5，原v2/v3/v4和默认Docker v3不升级。保留pack/来源，chat+pack+research共用永久模型额度及单pending；search独立计数，失败/取消/未知不退款。普通MCP仍八工具；private host v1加严格typed用例。
+- **执行与恢复：**next不披露query，claim只成功一次；receipt hash幂等但历史ACK不是再执行许可。step T1预占后后台只跑一次35秒phase、立即ACK不占host FIFO；pendingModel明确区分正在执行与已完成phase。断线pause+fence；重启恢复必须停全部旧写者后显式research-recover，claimed/pending转unknown不能重派；owner status/stop可跨binding，resume仅未派发/accepted阶段。无跨进程租约，普通serve不自动恢复/接管，避免重复启动破坏活跃研究；显式恢复前必须停止同库旧服务/runner。
+- **来源与评分：**网页/host摘要角色分离，Tavily content保守标inference；URL canonical去fragment共页根，变化摘录依赖旧根。材料/笔记/本地评分/typed事件/snapshot同事务。答案键与heldout题只本地存储，study不见heldout，assessment只笔记/题干，未提供assessment最多verification_pending；不批准growth，不证明通用掌握。
+- **请求边界：**固定api.tavily.com HTTPS POST、全DNS公网检查并pin连接、SNI/TLS验证、无代理/Cookie/redirect/retry/fetch，8秒/128KiB响应/3results/32KiB规范结果。合法字段反射key也失败关闭。仅合成兼容测试，不声称供应商内部计费/派生访问被控制。
+- **容量：**64runs、8192研究审计事件/16MiB，普通写到8000/15MiB前止，fence/fail/必要terminal共享有界清理余量；快照2MiB/core1000保留。容量失败不静默遗忘或扩大披露。
+
+## D-024：最小会话来源切片，显式v4且不等于学会
+
+- **状态：**已获用户“推进实现/继续”授权，完成源码与合成验证；未正式启用或迁移。完整网络学习仍按D-021/D-023设计推进。
+- **决策：**Pi用户命令`/shuguang-share`采集当前分支最近完整user/assistant text块；先UI/idle/服务状态，再准确预览主体、文字和未来模型披露；确认后核对快照、短期grant、accept、consume。禁止用say、普通MCP写开关或模型自报role授权。无UI/取消/分支变化/断开不继续派发。
+- **信任边界：**容器内私有JSONL桥持独立owner token，经loopback同socket配对10分钟executor；owner只授权/撤销，executor只接收/消费/查询。秘密不进Pi stdout/日志，合法响应字段反射凭据同样拒绝；无自动重连或重发。该边界不防同UID/Docker管理员绕过。
+- **存储：**显式`host-learning-init`新建DSW2 v4，原v2/v3与默认Docker setup不变、无迁移。v4保留pack及共享预算，新增精确来源/批次/grant/控制事件；来源唯一定位/hash冲突拒绝，user_statement与inference分开、不进聊天history、不调用模型或批成长。accept和consume分开，整批cycles/typed event/snapshot/消费标记同事务。sleep撤host权不撤pack；pending模型拒消费。
+- **限制：**2MiB快照/1000 core项与全量回放保留；host台账1000 grants/batches/sources、4MiB来源正文、4000审计事件上限。binding只内存、重启失效；已保存不能撤回，ACK丢失结果未知不重发，跨重连恢复UI与正式迁移未实现。来源可靠记录不证明文本真实、理解、通用掌握或成长。
+- **后续：**研究run/task/claim/receipt、公开query manifest执行、真实Web provider与独立测验尚未实现；不因最小来源通过就扩大到联网、费用、安装、部署或提交推送。

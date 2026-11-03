@@ -1,52 +1,70 @@
 # 架构与能力边界
 
-可视化总览见[完整架构图 HTML](docs/architecture.html)，可离线直接打开；展示当前0.1.0源码结构与限制，不是部署拓扑或实时健康页面。
+本分支`feat/mcp`从main `b446014`创建，不继承`feat/dsh-plugin`。删除旧Pi聊天薄层，不绑定Pi/DSH宿主；后续按用户要求提供可选Pi资源包，不改变MCP主线。部署使用只见根[README](README.md)。
 
-## 六核心主线与兼容运行边界
+## 模块与依赖方向
 
-当前设计已敲定六核心：self / cognition / affect / memory / agency / growth。`packages/dawn/src/core/` 为无I/O、可独立测试的领域内核；每个模块有类型、规则与校验，`experience.ts`统一来源，`cycle.ts`提供全有或全无的主体状态候选循环。具体契约见[六核心说明](docs/six-core.md)。
+```text
+可选 packages/pi-package：Pi扩展注册MCP连接＋分发skills（不接管主体）
+  ↓ Pi原生MCP注册，显式UI确认，无自动启动
+MCP客户端（Pi等）
+  ↓ HTTPS Streamable HTTP /mcp（远程）或 stdio JSON-RPC（本地兼容）
+packages/mcp：独立接入鉴权、握手、工具白名单、参数校验、取消、有界会话
+  ↓ DawnTransport
+packages/dawn/adapters/transport/http-client.ts
+  ↓ 鉴权本机HTTP /v1/request（不是HTTP MCP）
+runtime/subject-service.ts：FIFO交流、T1预占、T2提交
+  ↓
+core六核心纯规则 ＋ adapters/storage/sqlite-subject.ts持久化
+```
 
-旧版状态/类型/校验已移入 `packages/dawn/src/legacy/`；旧 `--db/--chat-db` 保持旧库格式与行为。新增显式 `--subject-db` 路径接通六核心与统一SQLite格式v2（DSW2），不自动迁移、重建或初始化正式主体。domain schemaVersion=2与SQLite user_version=2是各自的格式契约，不能混为一个版本。
+MCP只提供另一种入口，不持有另一份人格或模型。主体状态、模型配置/调用计数、SQLite与预算仍属于独立Dawn服务。core不依赖MCP、Pi、外部I/O；runtime不反向依赖接入包。
 
-依赖方向：入口/适配器 → runtime → core；storage adapter实现runtime接口并调用core typed transitions。legacy模式的runtime仍只引用legacy。新core不依赖runtime、legacy或适配器。六核心不是六Agent，不增加微服务；新模式每轮仅一次模型调用。
+## 六核心与事务
 
-## 六核心运行路径（显式新格式）
+self/cognition/affect/memory/agency/growth是同一主体。`runSubjectCycle`确定性校验与转换；世界认识、记忆修正和成长只是受限模型候选，不可任意patch或改变身份/权限。交流最小投影不包含完整状态/所有记忆。
 
-`subject-service`负责FIFO交流编排；`deliberation`组装有限自我/情感/相关记忆/认知不确定性/动机投影，并解析严格JSON候选；`sqlite-subject`统一事务管理六核心snapshot、bootstrap、typed事件、问答与预算。T1先预占调用、事务外IO、T2在锁内重新runSubjectCycle并原子提交两条经历/问答/usage。外部生命周期和revision变化会阻止旧结果提交。
+新模式`serve --subject-db`使用统一DSW2库；成功一轮交流两cycles、revision+2。T1先预占收费→事务外模型IO→T2重新校验CAS/纯cycle/原子提交，失败不退款、不重试。legacy库保留兼容，不自动迁移或重建。
 
-旧侧库不参与新模式事务。新模式不接受模型提供activities、权限或可信评估，成长只能candidate。详见[主体运行契约](docs/subject-runtime.md)。
+## 有界自主学习
 
-## 有界自主学习（0.1.0必需范围，已接通与离线验证）
+0.1.0必需范围保留：学习v3显式授权本地pack与子预算，同主体、同总预算。runner前台选题→教材/练习与笔记→独立assessment→本地评分→记忆/结果→继续或停止。私有评分键不入模型/公共记忆；合法教材中的知识不等于泄漏。completed不等于全通过或通用掌握。stop持久撤权、迟到拒交；pending不自动重发，recover前停所有同库进程。
 
-显式learning-init新建v3学习主体库与不可变本地pack/学习子预算；与普通交流复用同一SubjectState、总budget和事件回放，不把学习当user chat。learning-run前台自主选目标→study→独立assessment→提交学习经历/笔记/本地评分→下一目标。私有答案键不进模型或memory；模型笔记为inference，评分仅为本次表现。pending不自动恢复/重发，显式stop持久撤权拒迟到，Ctrl+C取消当前run。无工具/后台daemon/模型自批成长；详情见docs/autonomous-learning.md。
+## 私有有界研究（v5，合成验证未部署）
 
-## 已有运行链路（legacy，尚未切换六核心）
+`core/research.ts`只排序已批准的公开问题/query；`sqlite-research.ts`同库任务、收据、模型attempt、控制事件重放，由`SqliteSubjectStore`唯一事务拥有者提交。显式新v5保留pack/来源，旧库不升级。T1 claim预占搜索→Pi固定Tavily适配一次IO→receipt；T1 model预占→`ResearchRunner`一次有界phase→T2来源/笔记/程序评分/状态原子提交。不占host FIFO等待模型，pendingModel表示真实在途；chat/pack/research共享总额和单pending。
 
-这是一个 Node.js >= 24、TypeScript 的 npm 双 workspace 项目：`packages/dawn` 保存独立于 Pi 的主体核心、生命周期操作和本地 SQLite 持久化适配；`packages/pi-extension` 是可选的薄直连客户端。这条运行链路仍保留旧五模块快照格式，不应与新六核心的已实现领域规则混为一谈。
+owner UI→Pi私有JSONL→同socket owner/executor认证→研究用例。普通MCP仍八工具；Pi主模型既不持owner token也不代答。search仅公开manifest，host_summary为inference；同页摘录共同根，heldout答案不进模型。无独立测验只能待验证，不批growth。stop/sleep/断开/重启持久fence，未知外呼不重派，owner可查/停，resume只明确恢复安全阶段。不支持自由新query、web.fetch、全历史监听或永久后台循环。
 
-`packages/dawn` 使用 Node 内建 `node:sqlite`。当前 SQLite schema v1 每个数据库保存一个完整主体快照、不可变 bootstrap 快照，以及受支持的生命周期事件。`wake` / `sleep` 以 `BEGIN IMMEDIATE`、revision CAS 和同事务事件追加变更状态；打开数据库时会校验 identity/schema/revision，并从 bootstrap 回放事件、与快照比对。受支持的写入只有生命周期变更，并没有任意主体字段更新能力。初始 snapshot 可以包含非空的合法状态，但新库 revision 必须为 0；lifecycle 写入只改变 lifecycle、revision、updatedAt，不会重置其余字段。
+## MCP第一阶段
 
-CLI `init`、`status`、`wake`、`sleep`、`events` 都需要绝对 `--db` 路径。仅 `init` 创建数据库，且须给出 `--id`、`--name`；父目录必须事先存在。`--check` 仅表明 SQLite adapter 可用，不打开数据库，也不证明某个库有效。推荐数据路径 `~/.local/share/shuguang-intelligence/dawn.sqlite` 不是默认值，程序不会自动创建库或父目录。
+- `packages/mcp/src/server.ts`实现受限stdio协议和请求生命周期；`tools.ts`把精确工具参数映射到既有DawnRequest；`config.ts/main.ts`验证显式连接与私有token后运行。
+- 默认只有状态/缓存模型查询；`--allow-write`显式暴露交流、生命周期、目录发现与模型选择。工具注解不是安全授权，启用写权限的客户端还需自己的确认策略。
+- 新增HTTP MCP（D-026）：受信TLS反代→单 `/mcp` 网关→内部DawnTransport，POST单JSON、GET405、不提供SSE／重放。独立远程Bearer、准确Host／Origin、随机session及容量／超时边界；没有resources/prompts/sampling或私有owner接口。显式取消与HTTP断线不同，断线不保证撤回上游或已提交事务。
+- `say`仍按owner消息处理，不提供来源分离；不得用作自动导入Pi对话的接口。来源导入另走私有桥，接入不会自动共享历史或调用客户端搜索。
 
-已实现显式前台本机 HTTP 控制服务，显式模型配置和对话库可启用带最近历史的 API 交流，成功问答与固定次数调用台账持久化；尚无自主执行循环、长期知识提炼或通用记忆条目仓库。主体 snapshot 中的 `memoryIds` 只保存引用 ID，不是记忆正文。关闭 Pi 不隐式改变主体状态；SQLite 中的 `awake` 仅为持久状态标记，不是运行进程或活跃性的心跳。
+## 可选Pi资源包
 
-## Docker部署封装
+`packages/pi-package`为宿主侧独立分发资源，无Dawn/MCP运行代码依赖；根manifest也声明同一扩展与skills，支持整个Git源作为Pi包。扩展注册`/shuguang-mcp connect|disconnect|status`与用户专用`/shuguang-share`；前者通过`registerMcpServer`管理当前会话`shuguang`，后者只在UI预览批准后分享当前分支有限text块。不恢复旧`/dawn`、不直接转发聊天、不注册LLM工具或自动截取会话。
 
-新增Dockerfile/Compose把现有源码、Node和Pi放入同一容器，非root用户运行。曙光服务与通过exec打开的Pi仍是独立进程，薄扩展由启动入口显式附加；不转交模型密钥或Pi历史，不发布控制端口。容器管理脚本只包装现有CLI与私有凭据录入，不改变core、数据库格式或授权/预算规则。主体配置/数据、Pi配置/会话、工作目录分别落命名卷；Linux/WSL宿主由`start.sh`统一检查、首次构建、容器setup、启动/就绪与Pi连接；容器setup在明确确认后初始化或补缺配置，已有完整文件仅预检。前台学习仍单独执行，服务本身不自动初始化、wake或学习。停止容器会结束其中进程，数据保留依赖卷。当前未有Docker实际构建/运行证据，使用见根目录[README](README.md)，决策见D-018/D-019。
+显式配置二选一：HTTPS URL＋credentialEnv＋allowWrite，或本地仓库路径＋可选Docker context/Compose项目名＋allowWrite，不混用。扩展factory不做IO或连接（Pi安装本身仍由包管理器写资源/设置），connect在有UI且确认后注册远程URL／环境凭据引用或固定Docker exec argv，不拉服务/安装/写mcp.json。远程普通MCP不暴露owner桥，share/research远程模式明确拒绝，不读取历史或回退Docker。无UI失败关闭；并发/断开/关机会使迟到确认失效。注册不等于已连接，文件同名优先，替代MCP适配器需实际支持动态注册。Docker权限本身强大，路径/env/上下文不是沙箱；只连接可信项目。skill仅约束宿主操作，不自动教给曙光或授予联网学习。
 
-## 依赖与边界
+## 容器边界
 
-- 核心状态和生命周期不依赖 Pi。SQLite 由显式本地命令或 serve 进程打开，没有数据库路径推断或自动初始化。
-- 独立request CLI与Pi窗口共用dawn内的HTTP客户端和命令解析；引用方向仅Pi→dawn，本体不依赖Pi运行时。Pi只适配显式命令，不复制主体状态、不调用宿主模型、不自动拉起进程。未配置endpoint/token或服务不可用时明确失败。
-- DawnService 串行处理请求并保留取消/关闭边界；HTTP adapter 只绑定 127.0.0.1，强制 token、Host/Origin 与正文/响应限制；协议进行运行时字段校验。当前控制 token 是单一权限，不用于多人共享。
-- 独立实例元数据与持久身份分离；进程关闭不隐式 sleep。跨实例独占租约尚未实现，不能把实例 ID 当锁。
-- 模型配置通过 --model-config 显式读取，与 --chat-db 成对启用；其余主体示例不自动读取。对话库独立于主体 schema v1，chat-init 显式初始化并绑定主体 ID，不自动迁移。
-- SQLite 的安全假设、备份方法、格式兼容和失败语义见[持久化说明](docs/persistence.md)。它不提供加密或抗恶意同 UID 用户的安全边界。
+Docker仅打包Node、dawn、mcp和显式管理脚本，无Pi安装/薄扩展。默认compose仍只运行原Dawn，不发布端口。显式 `compose.mcp.yaml` overlay新增只读网关sidecar，共享dawn网络命名空间及只读data卷，只发布服务端宿主127.0.0.1:7342给可信TLS反代；不挂Docker socket／Pi home，网关不打开DB或装模型key。整个卷对网关可读是已知可信部署边界，不冒称文件级秘密隔离。
 
-## 兼容路径与明确边界
+HTTPS客户端不需要Docker／仓库路径，只有URL和远程接入凭据；断开／删除session不stop/sleep/delete主体。原stdio仅本地兼容，本机直接模式桥接和Dawn须同loopback。访问Docker引擎本身属于强权限，不应用于解决远程客户端普通对话。
 
-say交流路径与学习路径明确分离；0.1.0增加授权范围内的前台自主学习，不增加任意工具或外围服务。新格式和typed lifecycle/cycle事件回放已实现，旧库迁移器未实现。必须由用户明确选择新建独立主体库，不能把新库当作旧主体的无损延续；下文模型与独立chat库描述仍只适用于legacy模式。
+## 最小来源导入：已实现，未部署
 
+用户专用`/shuguang-share`经独立Docker exec私有JSONL桥，容器内部以独立owner token配对、生成10分钟socket绑定executor；秘密不进Pi响应或普通MCP工具。准确批次授权最多5分钟；服务分离owner的authorize/revoke与executor的accept/consume/status，普通service token不升级。没有自动重连或重发。
 
+显式`host-learning-init`新建DSW2 v4；v2/v3打开规则不变、host方法拒绝。v4保留原pack和共享预算，新增host_grants/import_batches/source_records/host_events。来源定位含主体/scope/session/entry/block/revision1，内容hash冲突拒绝；user→user_statement、assistant→inference。accept存来源，consume在唯一SQLite事务中运行确定性cycles并提交snapshot/typed event/消费标记；不入DialoguePair、不调用模型、不批成长。pending模型未结算时拒绝消费；sleep同事务撤销全部host grants，wake不复活。
 
-模型处理固定能力边界提示、最近完整对话及本次消息；不直接写性格/情绪/知识，调用须清醒且受超时、实例次数与对话库永久次数限制。对话只在最新预占序号、输出校验和主体 revision 复查后提交；失败不退次数。详见[对话记录](docs/dialogue-memory.md)。后续可以分别评估记忆仓库、模型提案接口、Pi 显式自动拉起及跨进程运行租约，但每项都需要独立实现、错误语义、测试与安全审查。schema v1 不支持旧库或未来 schema 自动迁移。完成前，文档和用户界面必须持续区分“规划”“类型定义”和“已接通能力”。
+冷开验证精确SQL表约束、来源/授权/控制审计、领域事件与快照；不是管理员抗篡改证明。台账上限1000 grants/batches/sources、4MiB来源正文、4000 host events；现有2MiB快照/1000 core集合不变，超限整批拒绝。binding只在内存，重启失效；跨重连恢复UI未实现。默认setup仍v3，未提供正式旧库迁移。
+
+## 下一阶段：检索学习
+
+这是用户确认的产品方向，网络部分尚未实现。已形成[宿主能力接口v0设计](docs/host-capabilities.md)：先以web.search/web.fetch窄能力及持久任务邮箱连接Pi可信执行桥，不透传任意工具；grant来自可信控制面，领取预占/CAS与执行绑定、结果接纳/消费分阶段、持久fence及崩溃不自动重派分别约束。设计文档不意味着新接口已注册或自动联网已启用。需要显式会话范围/授权、来源区别、任务账本、独立预算/停止、工具执行方和检索证据返回机制；不能单靠MCP工具列表或提示词实现。优先公开检索/有界网页只读，不自动开放Shell、登录态浏览器、发消息或所有MCP；Pi离线时任务等待而非假成功。
+
+旧[HTML架构导览](docs/architecture.html)保留六核心/存储说明，已标注Pi交互图过时，尚未重新做全图排版认证。应用0.1.0、普通/私有协议各v1、领域schema2、SQLite v1/v2/v3/v4、MCP协商版本各自独立，不自动升级。

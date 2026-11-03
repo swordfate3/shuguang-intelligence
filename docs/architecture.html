@@ -273,6 +273,7 @@
   </style>
 </head>
 <body>
+  <aside style="padding:1rem;max-width:72rem;margin:auto;border:2px solid currentColor"><strong>feat/mcp 分支变更：</strong>Pi专用扩展已移除，现以MCP stdio桥接独立服务；下方Pi交互图保留为旧版设计，不代表当前入口。核心与SQLite规则不变，当前使用以<a href="../README.md">README</a>为准。自动对话共享与借用检索仍待实现。</aside>
   <a class="skip-link" href="#main">跳到正文</a>
   <header class="site-header">
     <div class="brand"><span class="brand-mark">☀</span> 曙光智慧 · 架构导览</div>
@@ -546,7 +547,7 @@
             <li><strong>应用入口与 CLI 分流</strong><br><a href="../packages/dawn/src/main.ts">main.ts</a> → <a href="../packages/dawn/src/runtime/cli.ts">runtime/cli.ts</a> → <a href="../packages/dawn/src/runtime/subject-cli.ts">subject-cli.ts</a> / <a href="../packages/dawn/src/runtime/learning-cli.ts">learning-cli.ts</a></li>
             <li><strong>交流入口 / 编排 / 投影</strong><br><a href="../packages/dawn/src/runtime/serve.ts">serve.ts</a> → <a href="../packages/dawn/src/adapters/transport/http-server.ts">http-server.ts</a> → <a href="../packages/dawn/src/runtime/subject-service.ts">subject-service.ts</a> → <a href="../packages/dawn/src/runtime/deliberation.ts">deliberation.ts</a></li>
             <li><strong>学习入口 / 状态机</strong><br><a href="../packages/dawn/src/runtime/learning-runner.ts">learning-runner.ts</a> · <a href="../packages/dawn/src/runtime/learning-store.ts">learning-store.ts</a> · <a href="../packages/dawn/src/core/learning.ts">core/learning.ts</a></li>
-            <li><strong>核心与统一持久化</strong><br><a href="../packages/dawn/src/core/cycle.ts">core/cycle.ts</a> · <a href="../packages/dawn/src/adapters/storage/sqlite-subject.ts">sqlite-subject.ts</a> · <a href="../packages/pi-extension/src/index.ts">Pi extension（可选客户端）</a></li>
+            <li><strong>核心与统一持久化</strong><br><a href="../packages/dawn/src/core/cycle.ts">core/cycle.ts</a> · <a href="../packages/dawn/src/adapters/storage/sqlite-subject.ts">sqlite-subject.ts</a> · <a href="../packages/mcp/src/main.ts">MCP stdio入口</a></li>
           </ul></article>
           <article class="panel"><h3>文档交叉核对</h3><ul class="source-list">
             <li><a href="subject-runtime.md">subject-runtime.md</a> — say / T1-T2 / replay / privacy</li><li><a href="autonomous-learning.md">autonomous-learning.md</a> — 授权、投影、状态、stop / recover</li><li><a href="six-core.md">six-core.md</a> — 六核心及 cycle 规则</li><li><a href="verification.md">verification.md</a> — 合成、真实 API 与未验证范围</li><li><a href="../STATUS.md">STATUS.md</a> · <a href="../ARCHITECTURE.md">ARCHITECTURE.md</a> · <a href="../README.md">README.md</a></li>
@@ -598,8 +599,8 @@
                 </li>
               </ul>
             </li>
-            <li><strong>packages/pi-extension/src · 可选 UI / 薄客户端，不是主体 owner</strong>
-              <ul><li><a href="../packages/pi-extension/src/index.ts">index.ts</a> · <a href="../packages/pi-extension/src/client.ts">client.ts</a> · <a href="../packages/pi-extension/src/http-transport.ts">http-transport.ts</a></li></ul>
+            <li><strong>packages/mcp/src · MCP适配层，不是主体 owner</strong>
+              <ul><li><a href="../packages/mcp/src/main.ts">main.ts</a> · <a href="../packages/mcp/src/server.ts">server.ts</a> · <a href="../packages/dawn/src/adapters/transport/http-client.ts">http-client.ts</a></li></ul>
             </li>
             <li><strong>测试目录 · 合成行为覆盖（本页未执行）</strong>
               <ul>
@@ -607,7 +608,7 @@
                 <li><a href="../packages/dawn/tests/learning-core.test.ts">learning-core.test.ts</a> · <a href="../packages/dawn/tests/learning-runner.test.ts">learning-runner.test.ts</a> · <a href="../packages/dawn/tests/learning-storage.test.ts">learning-storage.test.ts</a> · <a href="../packages/dawn/tests/learning-cli.test.ts">learning-cli.test.ts</a></li>
                 <li><a href="../packages/dawn/tests/subject-service.test.ts">subject-service.test.ts</a> · <a href="../packages/dawn/tests/subject-store.test.ts">subject-store.test.ts</a> · <a href="../packages/dawn/tests/subject-integration.test.ts">subject-integration.test.ts</a> · <a href="../packages/dawn/tests/subject-recovery.test.ts">subject-recovery.test.ts</a></li>
                 <li><a href="../packages/dawn/tests/service.test.ts">service.test.ts (legacy)</a> · <a href="../packages/dawn/tests/sqlite.test.ts">sqlite.test.ts (legacy)</a> · <a href="../packages/dawn/tests/chat-store.test.ts">chat-store.test.ts</a> · <a href="../packages/dawn/tests/chat-recovery.test.ts">chat-recovery.test.ts</a></li>
-                <li><a href="../packages/dawn/tests/http-server.test.ts">http-server.test.ts</a> · <a href="../packages/dawn/tests/model.test.ts">model.test.ts</a> · <a href="../packages/dawn/tests/protocol.test.ts">protocol.test.ts</a> · <a href="../packages/pi-extension/tests/extension.test.ts">extension.test.ts</a></li>
+                <li><a href="../packages/dawn/tests/http-server.test.ts">http-server.test.ts</a> · <a href="../packages/dawn/tests/model.test.ts">model.test.ts</a> · <a href="../packages/dawn/tests/protocol.test.ts">protocol.test.ts</a> · <a href="../packages/mcp/tests/integration.test.ts">MCP integration.test.ts</a></li>
               </ul>
             </li>
           </ul>

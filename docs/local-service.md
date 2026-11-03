@@ -1,75 +1,31 @@
-# 独立本机控制服务
+# 独立本机控制服务契约
 
-本阶段把本体持久状态接到独立前台进程，再由 Pi 作为薄客户端访问。带有界对话历史与持久调用额度的模型交流可显式启用，尚无自主活动。以下命令是使用说明，本次开发没有创建正式主体或安装服务。
+部署与使用只维护根[README](../README.md)。本文件描述底层服务边界，不是另一份源码部署教程。
 
-> 下方示例是legacy `--db/--chat-db`。六核心采用 `serve --subject-db /absolute/subject.sqlite`，没有chat sidecar；显式新建与数据披露差异见[主体运行接线](subject-runtime.md)。endpoint/token/协议不变，现有Pi薄客户端可连接任一明确选择的服务。
+## 进程与持久状态
 
-## 不依赖Pi的独立客户端（0.1.0）
+- `serve`显式启动前台服务，打开已有SQLite，不创建、迁移、重建数据库或自动wake。
+- 六核心模式使用显式`--subject-db`，交流v2/学习v3/实验性来源v4同主体库；legacy `--db/--chat-db`保留兼容行为，不与新模式混用。
+- 持久awake字段不是存活心跳，也不是后台自主活动。关闭MCP客户端或桥接只取消其在途请求，不隐式sleep或停止本体。
+- 原有有界本地pack学习仍由显式前台runner执行；同库运行/恢复的管理边界不因MCP接入放宽。
 
-服务启动后，可在另一终端运行：
+## 鉴权与传输
 
-```bash
-npm start -- request --endpoint http://127.0.0.1:7341 --token-file /absolute/private/service.token -- status
-npm start -- request --endpoint http://127.0.0.1:7341 --token-file /absolute/private/service.token -- say "你好"
-```
+- 既有底层服务只监听`127.0.0.1`，处理`POST /v1/request`，不是HTTP MCP endpoint。
+- 强制独立service token、精确Host、拒绝Origin、有界UTF8/JSON与字段校验。token不同于模型API key，不打印或自动发现。
+- `HttpDawnTransport`和`DawnClient`由dawn拥有；MCP只依赖该客户端契约，core/runtime不依赖MCP宿主。
+- 默认控制请求10秒、say客户端40秒/服务端35秒；模型独立≤30秒。取消/断线不证明未提交，不能自动重试写操作。
+- 实验性`/host/v1/request`另需显式新v4及独立owner凭据，不由service token升级。私有host协议v1按socket配对短期executor，分开owner授权/撤销与executor接收/消费/查询；默认不启用，不自动升级旧库。不是HTTP MCP，细节见[宿主能力](host-capabilities.md)。
+- 原`/v1/request`的service token是单一权限。MCP的只读/`--allow-write`是桥接暴露限制，不是服务端细粒度鉴权，也不保护恶意同UID进程或能运行任意Docker命令的宿主。
 
---后允许status、wake/sleep加安全整数revision、say加单个完整消息参数，以及model-status、models、model <选择版本> <ID>、thinking <选择版本> <档位>。含空格的模型ID须作为单个引号参数；模型选择版本与主体revision独立。endpoint与token-file必须显式提供，不发现环境、不创建库或拉起服务。输出应用error时退出码1；成功response退出0。SIGINT/SIGTERM传播取消，响应丢失或取消后仍应查状态确认，不自动重试。HTTP client与命令解析由dawn拥有，Pi只复用实现。
+## MCP入口
 
-## 显式准备与启动
+本分支删除`packages/pi-extension`，改由`packages/mcp`提供stdio桥接。客户端通过子进程通信，容器场景以`docker compose exec -T`在现有服务容器运行桥接，不发布控制端口、不复制token、不注入model.env。
 
-在项目目录下，手动执行：
+仅支持有界tools能力；无自动会话采集/检索委派/HTTP MCP/sampling。MCP握手与工具调用不意味着对话学习授权；`say`仍是旧owner消息语义，不能用于冒充来源分离的代理对话导入。
 
-```bash
-DATA="$HOME/.local/share/shuguang-intelligence"
-mkdir -p -m 700 "$DATA"  # 已有目录需另外确认权限及所有者
-npm start -- init --db "$DATA/dawn.sqlite" --id dawn-local --name 曙光
-npm start -- token-init --token-file "$DATA/service.token"
-npm start -- serve --db "$DATA/dawn.sqlite" --token-file "$DATA/service.token" --port 7341
-```
+详细接口及版本边界见[MCP契约](mcp.md)与[底层协议v1](protocol.md)。
 
-- 如数据库或 token 已存在，不重复 init；创建操作拒绝覆盖。
-- token 文件必须是当前用户拥有的私有普通文件，不接受最终路径 symlink。新文件权限 0600；父目录必须可信且私有。
-- token 不出现在命令行参数或正常输出。服务就绪只输出 endpoint、实例 ID 与模型配置状态，不含密钥。
-- `--port 0` 可让系统选择临时端口，主要用于测试；插件必须配置实际端口。
-- Ctrl+C 或 SIGTERM 关闭服务与连接，等待运行请求清理并释放 SQLite。不隐式 sleep，也不删除数据。
-- 进程启动不自动 wake；重启恢复上次持久生命周期字段。awake 不代表自主推理已启用。
+## 运行限制
 
-## Pi 连接
-
-插件使用显式 `DAWN_ENDPOINT` 和 `DAWN_TOKEN_FILE`，不猜测端口、不搜索凭据、不读取 Pi 模型配置。建议写在仅供本次启动的包装脚本或宿主进程配置中，不依赖交互 shell export：
-
-```sh
-#!/bin/sh
-DAWN_ENDPOINT=http://127.0.0.1:7341 \
-DAWN_TOKEN_FILE="$HOME/.local/share/shuguang-intelligence/service.token" \
-exec pi -e /workspace/projects/shuguang-intelligence/packages/pi-extension/src/index.ts "$@"
-```
-
-包装脚本只是示例，本次没有写入用户安装目录或修改 Pi 配置。插件注册时不启动进程、监听网络或调用模型。
-
-服务已单独启动且插件被用户显式加载后：
-
-```text
-/dawn status
-/dawn wake 0
-/dawn sleep 1
-/dawn say 你好
-/dawn model-status
-/dawn model
-/dawn models
-/dawn thinking
-/dawn thinking high
-```
-
-`model`打开模型选择器，先确认是否GET当前曙光入口刷新目录；选择否仅用缓存，取消不提交。`models`是明确远程刷新命令；`model <ID>`只选择缓存内ID。thinking包含off（省略参数，不保证关闭思考）。选择仅此服务进程内共享，不改Pi模型/密钥、配置文件、主体或永久预算，不重置适配器次数，不影响已开始的生成；重启回到配置初值。详见[模型选择](model-configuration.md)。
-
-先 status 获取当前 revision，示例数字不能盲目复用。未配模型时 say 返回 NOT_IMPLEMENTED；配模型后须先 wake，从已绑定对话库接续最近的完整问答，保存成功对话与调用台账。关闭 Pi 仅断开客户端，不休眠/终止独立服务。
-
-## 限制
-
-- 必须同时附加 `--model-config /absolute/path/model.json --chat-db /absolute/path/chat.sqlite` 才能启用模型；先通过 `chat-init --db ... --chat-db ... --limit N` 创建对话库。额度不会随重启重置，详见[对话记录与预算](dialogue-memory.md)、[模型接入说明](model-api.md)。
-- 当前只连接已启动服务，Pi 尚不负责自动拉起服务进程。这是未来启动开关的剩余工作，不应把 wake 标记当成创建后台进程。
-- 所有持有 token 的本机客户端都具有当前控制权限；暂未细分只读、控制或聊天权限，不适合多人或不可信插件共享。
-- 服务不防御恶意同 UID 进程，不加密本机 HTTP，不提供系统服务安装或自动重启。
-- 进程内请求串行化，SQLite CAS 跨连接防覆盖；未实现跨进程独占运行租约，不应同时为同一数据库启动多个自主运行器。
-- 数据库同步操作无法即时抢占；客户端超时、取消和断线不证明变更未提交。参见[协议](protocol.md)。
+没有跨进程独占租约、恰好一次交付、自动重试/恢复/迁移/加密保证；多个客户端共享同一主体和永久预算，CAS只防过期覆盖。备份/学习恢复前停止全部写入者，不能以MCP连接状态当数据库独占锁。UNAVAILABLE仍是多类错误的固定脱敏响应，尚未提供精细诊断。

@@ -1,5 +1,26 @@
 # 更新记录
 
+## 未发布 — feat/mcp
+
+- 新增HTTPS Streamable HTTP MCP `/mcp`网关，远程客户端只需URL与独立接入凭据，不需要Docker／仓库路径；标准JSON响应、独立鉴权／Host-Origin／session／并发及超时边界，原stdio保留本地兼容。不公开内部Dawn／owner私有接口，不重建主体或迁移DB。
+- Pi资源包新增HTTPS URL＋credentialEnv配置和远程确认／工具暴露限制；客户端不能升级服务端写权限。远程share/research私有桥尚不支持，明确失败关闭，不自动fallback Docker／读历史。
+- 新增显式`compose.mcp.yaml`、`mcp-token-init`与`mcp-http`入口，默认Compose仍不发布端口；网关经可信TLS反代接入，只读原卷且不打开DB。断开只关闭接入，不stop/sleep/delete主体；实际域名／证书／Docker部署未执行。
+
+- 新增v5有界公开研究：owner批准准确问题/query与预算，主体排序、私有task/claim/receipt、固定Tavily搜索适配、曙光独立模型study/heldout测验、原子来源/笔记/程序评分、继续/停止。`/shuguang-research`仅用户命令，不读Pi历史/借Pi主模型，不暴露通用执行工具。
+- 显式`research-learning-init`只新建v5、兼容pack/来源和共享永久预算；默认setup仍v3，无正式迁移。断线/期限/stop/sleep持久fence，崩溃后须停全部旧服务再显式`research-recover`，未知请求收费不重派，普通serve不隐式接管。真实provider/模型/部署仍未认证。
+
+- 新增实验性Pi `/shuguang-share`：选定完整文本块、准确预览授权、容器内私有桥/独立owner与socket绑定executor；不自动监听、不暴露模型授权工具或秘密、不停止Docker。
+- 显式`host-learning-init`新建DSW2 v4来源库，保留pack学习和预算；接收/消费分开、整批原子记忆、定位去重/内容冲突/冷回放、sleep撤host权。不调用模型/联网、不等于已学会；默认setup仍v3，无正式迁移或真实部署。
+
+- 后续新增可选Pi资源包：同一安装源分发MCP连接管理扩展与shuguang skill，仅在显式UI确认后注册当前会话，默认只读；不恢复旧/dawn、不代启服务、不改mcp.json/凭据或自动采集对话。资源包不打入独立Docker镜像；后续已按用户明确要求注册当前容器个人Pi配置，尚未发布。
+
+- 从main b446014分出MCP开发，不合入DSH分支；删除Pi专用薄扩展workspace及其测试，dawn集成直接引用本体客户端。
+- 新增无运行依赖的tools-only MCP stdio桥接：握手、工具schema、默认只读/显式写操作、取消、UTF8/帧/并发/输出队列限制及脱敏错误；不自动采集对话、检索或学习，不变更core/协议v1/SQLite格式。
+- Docker不再安装Pi，只保留原dawn-data卷；新增mcp子命令，不加载model.env、不发布端口、不自动删除旧Pi卷。start就绪后返回终端；根README为唯一部署使用教程。
+- 最小会话来源和有界公开检索任务均由独立私有桥承接；自由query和web.fetch仍为后续目标，不能用现有owner say冒充对话学习或继承Pi全部MCP工具。当前UNAVAILABLE细分仍未实现，真实Docker部署与长期学习未认证。
+
+下文为main历史功能记录，Pi扩展/三卷/进入Pi等描述已被本分支新入口替代。
+
 ## 0.1.0 — 首版源码（含有界自主学习）
 
 有界、单可信所有者、本机独立数字伙伴原型。版本号表示源码范围，不表示已经部署、发布包或创建正式主体。
