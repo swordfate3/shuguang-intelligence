@@ -21,3 +21,6 @@ config/dawn.local.json
 # Editor files
 .vscode/
 .idea/
+
+# Attachments and private local data
+.pi-attachments/

@@ -1,0 +1,63 @@
+name: Bug report
+description: 报告可复现的缺陷
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        安全问题请勿在此提交，见 SECURITY.md。
+        请勿粘贴真实 API key、完整环境变量、私有数据库或真实对话内容。
+  - type: textarea
+    id: what
+    attributes:
+      label: 现象
+      description: 实际发生了什么，期望是什么
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 命令、输入、配置（用合成值）。若与 Docker/MCP/模型有关，请注明版本与连接方式。
+      placeholder: |
+        1. npm ci
+        2. npm test -- ...
+        3. 观察到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 证据
+      description: 脱敏后的输出、测试名、commit。不要贴密钥或原始上游异常。
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      placeholder: Node 24.x / npm 11.x / OS / Docker 版本（如适用）
+  - type: dropdown
+    id: area
+    attributes:
+      label: 区域
+      options:
+        - dawn core / 主体状态
+        - dawn storage / 迁移
+        - 交流与预算
+        - 本地 pack 学习
+        - 来源导入 (v4)
+        - 有界研究 (v5)
+        - MCP stdio
+        - MCP HTTPS 网关
+        - Pi 资源包
+        - Docker / 部署
+        - 文档
+        - 其他
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 这不是安全漏洞（安全漏洞请走私密报告）
+          required: true
+        - label: 我已移除所有真实密钥、私有数据和个人信息
+          required: true

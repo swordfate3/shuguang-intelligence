@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞（私密报告）
+    url: https://github.com/swordfate3/shuguang-intelligence/security/advisories/new
+    about: 请勿公开提交安全问题；使用 GitHub 私有漏洞报告。
+  - name: 使用与部署问题
+    url: https://github.com/swordfate3/shuguang-intelligence/blob/main/README.md
+    about: 先阅读根 README 的部署与连接说明。

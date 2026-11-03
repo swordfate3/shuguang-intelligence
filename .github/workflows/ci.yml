@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Reject private artifacts and credentials
+        run: |
+          set -eu
+          bad=$(git ls-files | grep -Ei '(^|/)(\.pi-attachments/|.*\.sqlite.*|.*\.token|model\.env|dawn\.local\.json)$' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Private artifacts must never be committed:"
+            echo "$bad"
+            exit 1
+          fi
+          if git grep -nIE 'sk-[A-Za-z0-9]{24,}|AIza[0-9A-Za-z_-]{30,}|ghp_[A-Za-z0-9]{30,}' -- . ':!package-lock.json' ':!*.md'; then
+            echo "::error::Possible committed credential found"
+            exit 1
+          fi
+
+      - run: npm ci
+      - name: Type check
+        run: npm run check
+      - name: Full regression
+        run: npm test
+      - name: Acceptance (dialogue + bounded pack learning)
+        run: npm run verify:acceptance
+      - name: Offline learning acceptance
+        run: npm run verify:learning:offline

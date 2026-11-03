@@ -1,0 +1,19 @@
+# 代码所有者
+# 这些路径决定主体身份、持久化契约或权限边界，改动需要维护者审查。
+# 语法见 https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+*                                   @swordfate3
+
+/packages/dawn/src/core/            @swordfate3
+/packages/dawn/src/protocol/        @swordfate3
+/packages/dawn/src/adapters/storage/ @swordfate3
+/packages/dawn/src/runtime/research-store.ts @swordfate3
+/packages/dawn/src/runtime/conversation-store.ts @swordfate3
+/packages/mcp/src/http-server.ts    @swordfate3
+/packages/mcp/src/tools.ts          @swordfate3
+/packages/pi-package/src/research.ts @swordfate3
+/packages/pi-package/src/search-provider.ts @swordfate3
+
+/DECISIONS.md                       @swordfate3
+/SECURITY.md                        @swordfate3
+/.github/                           @swordfate3
