@@ -9,10 +9,10 @@
 !packages/dawn/package.json
 !packages/dawn/src/
 !packages/dawn/src/**
-!packages/pi-extension/
-!packages/pi-extension/package.json
-!packages/pi-extension/src/
-!packages/pi-extension/src/**
+!packages/mcp/
+!packages/mcp/package.json
+!packages/mcp/src/
+!packages/mcp/src/**
 !config/
 !config/learning-pack.example.json
 !docker/

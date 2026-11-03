@@ -20,7 +20,10 @@ Dawn container (no automatic initialization, wake, generation or learning)
   model-config                                  Offline interactive wizard; new model.json only
   credentials                                   Hidden interactive key entry; new model.env only
   serve                                         Foreground model service; fails if setup is missing
-  pi [Pi arguments...]                           Pi + Dawn extension + fixed loopback connection
+  mcp [--allow-write]                             stdio bridge to the existing loopback Dawn service
+  mcp-token-init                                 Explicitly create a separate remote MCP access token (never prints it)
+  mcp-http --public-url https://host/mcp [...]     Streamable HTTP gateway; TLS must terminate at a trusted reverse proxy
+  host-bridge                                    Private conversation-import bridge; separate owner token and v4 required
   request <command...>                           Standalone control client (status/wake/sleep/say/model controls)
   status | budget | learning-status              Safe queries (budget/learning-status open existing DB)
   learning-run                                  Foreground approved learning; stop same-DB serve first
@@ -57,14 +60,46 @@ HELP
   serve)
     [ "$#" -eq 0 ] || exit 1
     node "$MANAGE" verify-files
+    if [ -e "$DATA/host-owner.token" ] || [ -L "$DATA/host-owner.token" ]; then
+      exec node --env-file="$DATA/model.env" "$MAIN" serve --subject-db "$DATA/subject.sqlite" \
+        --token-file "$DATA/service.token" --port 7341 --model-config "$DATA/model.json" \
+        --host-token-file "$DATA/host-owner.token"
+    fi
     exec node --env-file="$DATA/model.env" "$MAIN" serve --subject-db "$DATA/subject.sqlite" \
       --token-file "$DATA/service.token" --port 7341 --model-config "$DATA/model.json"
     ;;
-  pi)
-    # Pi receives a token PATH, never Dawn's model credentials. Explicit -e works with a fresh Pi home volume.
-    export DAWN_ENDPOINT=http://127.0.0.1:7341
-    export DAWN_TOKEN_FILE="$DATA/service.token"
-    exec pi -e "$APP/packages/pi-extension/src/index.ts" "$@"
+  mcp)
+    case "$#" in
+      0) ;;
+      1) if [ "$1" != "--allow-write" ]; then printf '%s\n' 'Usage: dawn-container mcp [--allow-write]' >&2; exit 1; fi ;;
+      *) printf '%s\n' 'Usage: dawn-container mcp [--allow-write]' >&2; exit 1 ;;
+    esac
+    if [ "$#" -eq 1 ]; then
+      exec node "$APP/packages/mcp/src/main.ts" --endpoint http://127.0.0.1:7341 \
+        --token-file "$DATA/service.token" --allow-write
+    fi
+    exec node "$APP/packages/mcp/src/main.ts" --endpoint http://127.0.0.1:7341 \
+      --token-file "$DATA/service.token"
+    ;;
+  mcp-token-init)
+    [ "$#" -eq 0 ] || exit 1
+    node "$MANAGE" verify-directory
+    exec node "$MAIN" token-init --token-file "$DATA/mcp-access.token"
+    ;;
+  mcp-http)
+    # Only the gateway sees these tokens; do not load model.env or expose the private owner token.
+    case "${DAWN_MCP_ALLOW_WRITE:-false}" in
+      false) ;;
+      true) set -- "$@" --allow-write ;;
+      *) printf '%s\n' 'DAWN_MCP_ALLOW_WRITE must be true or false.' >&2; exit 1 ;;
+    esac
+    exec node "$APP/packages/mcp/src/http-main.ts" --endpoint http://127.0.0.1:7341 \
+      --token-file "$DATA/service.token" --auth-token-file "$DATA/mcp-access.token" "$@"
+    ;;
+  host-bridge)
+    [ "$#" -eq 0 ] || exit 1
+    exec node "$APP/packages/dawn/src/host-bridge-main.ts" --endpoint http://127.0.0.1:7341 \
+      --owner-token-file "$DATA/host-owner.token"
     ;;
   request)
     exec node "$MAIN" request --endpoint http://127.0.0.1:7341 --token-file "$DATA/service.token" -- "$@"

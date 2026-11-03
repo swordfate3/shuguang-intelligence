@@ -1,0 +1,28 @@
+# Explicit opt-in overlay. The normal compose.yaml still publishes no ports.
+# Run on the SERVICE host, never on the remote MCP client.
+services:
+  dawn:
+    # Host publication is loopback-only. Containers on the same private network must also be trusted.
+    ports:
+      - "127.0.0.1:${SHUGUANG_MCP_PORT:-7342}:7342"
+  mcp-http:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    command: ["mcp-http", "--host", "0.0.0.0", "--port", "7342", "--public-url", "${SHUGUANG_MCP_PUBLIC_URL:?Set the exact https://domain/mcp URL}"]
+    environment:
+      DAWN_MCP_ALLOW_WRITE: "${SHUGUANG_MCP_ALLOW_WRITE:-false}"
+    network_mode: "service:dawn"
+    depends_on:
+      dawn:
+        condition: service_healthy
+    restart: "no"
+    stop_grace_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    volumes:
+      - dawn-data:/data:ro
