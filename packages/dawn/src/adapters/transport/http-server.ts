@@ -1,4 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
+import { handleHostHttp } from "./host-http-server.ts";
+import type { HostImportService } from "../../runtime/host-service.ts";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { TextDecoder } from "node:util";
 import {
@@ -39,6 +41,7 @@ export async function startHttpServer(options: {
   token: string;
   port: number;
   handler: DawnHandler;
+  hostService?: HostImportService;
   signal?: AbortSignal;
 }): Promise<{ port: number; close(): Promise<void> }> {
   if (!TOKEN_PATTERN.test(options.token)) throw new TypeError("Invalid HTTP server token");
@@ -143,6 +146,10 @@ export async function startHttpServer(options: {
       if (request.headers.origin !== undefined || hostHeaders.length !== 1 ||
           hostHeaders[0] !== `127.0.0.1:${actualPort}`) {
         sendError(response, "forbidden", 403);
+        return;
+      }
+      if (request.url === "/host/v1/request" && options.hostService) {
+        await handleHostHttp(options.hostService, request, response, controller.signal);
         return;
       }
       if (request.url !== "/v1/request") {
@@ -262,13 +269,14 @@ export async function startHttpServer(options: {
   // The per-request timer below returns a fixed JSON 400 and aborts body/handler work.
   // Avoid Node's built-in 408 response, which bypasses our wire error envelope.
   server.requestTimeout = 0;
-  server.keepAliveTimeout = 1_000;
+  server.keepAliveTimeout = options.hostService ? 360_000 : 1_000;
   server.maxHeadersCount = 64;
   server.maxConnections = MAX_CONNECTIONS;
-  server.maxRequestsPerSocket = 1;
+  // Bound the ten-minute private session without cutting off legitimate <=1Hz research polling.
+  server.maxRequestsPerSocket = options.hostService ? 2048 : 1;
   server.on("connection", socket => {
     sockets.add(socket);
-    socket.once("close", () => sockets.delete(socket));
+    socket.once("close", () => { sockets.delete(socket); options.hostService?.disconnect(socket); });
   });
   server.on("clientError", (_error, socket) => {
     if (!socket.writable || socket.destroyed) return;

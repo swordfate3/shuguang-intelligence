@@ -13,7 +13,7 @@ test("help and adapter check never initialize state", async () => {
   const check = await runCli(["--check"], signal());
   assert.deepEqual(check, {
     version: "0.1.0", stage: "bounded-companion", domainSchemaVersion: 2,
-    storageFormats: { subject: 2, learning: 3, legacy: 1 }, sqliteAdapterAvailable: true,
+    storageFormats: { subject: 2, learning: 3, hostLearning: 4, researchLearning: 5, legacy: 1 }, sqliteAdapterAvailable: true,
     databaseOpened: false, modelConnected: false, transportAvailable: true, serverStarted: false,
     autonomy: false, autonomousLearningAvailable: true,
   });

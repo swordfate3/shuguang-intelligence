@@ -7,6 +7,7 @@ import { loadModel } from "../adapters/models/config.ts";
 import { SqliteChatStore } from "../adapters/storage/sqlite-chat.ts";
 import { SqliteSubjectStore } from "../adapters/storage/sqlite-subject.ts";
 import { SubjectService } from "./subject-service.ts";
+import { HostImportService } from "./host-service.ts";
 
 /** Foreground process owner. No daemonization, PID files, auto-init or implicit wake/sleep. */
 export async function runServer(
@@ -19,7 +20,7 @@ export async function runServer(
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i];
     const value = args[i + 1];
-    if (!key || !["--db", "--subject-db", "--token-file", "--port", "--model-config", "--chat-db"].includes(key) || options.has(key) || !value || value.startsWith("--")) {
+    if (!key || !["--db", "--subject-db", "--token-file", "--port", "--model-config", "--chat-db", "--host-token-file"].includes(key) || options.has(key) || !value || value.startsWith("--")) {
       throw new Error("Invalid serve options");
     }
     options.set(key, value);
@@ -39,19 +40,29 @@ export async function runServer(
   if ((!subjectPath && Boolean(modelConfig) !== Boolean(chatPath)) || (chatPath && (!isAbsolute(chatPath) || chatPath === path))) {
     throw new Error("Model configuration and separate absolute chat database must be provided together");
   }
+  const hostTokenPath = options.get("--host-token-file");
+  if (hostTokenPath && (!subjectPath || !isAbsolute(hostTokenPath) || hostTokenPath === tokenPath)) throw new Error("Separate host owner token required");
+  const hostToken = hostTokenPath ? readTokenFile(hostTokenPath) : undefined;
   const model = modelConfig ? loadModel(modelConfig) : undefined;
   const token = readTokenFile(tokenPath);
+  if (hostToken === token) throw new Error("Host and ordinary service credentials must differ");
   const store = subjectPath ? SqliteSubjectStore.open(path, signal) : SqliteStateStore.open(path, signal);
   let chat: SqliteChatStore | undefined;
   let service: DawnService | SubjectService | undefined;
   let server: Awaited<ReturnType<typeof startHttpServer>> | undefined;
+  let hostService: HostImportService | undefined;
   try {
     if (chatPath) chat = SqliteChatStore.open(chatPath, (await store.read(signal)).self.identity.id, signal);
     const activeService = store instanceof SqliteSubjectStore
       ? new SubjectService(store, model)
       : new DawnService(store, undefined, model, chat);
     service = activeService;
-    server = await startHttpServer({ token, port: Number(rawPort), handler: (request, requestSignal) => activeService.handle(request, requestSignal) });
+    if (hostToken) {
+      if (!(store instanceof SqliteSubjectStore) || !store.supportsHostImport) throw new Error("Host import requires explicitly created v4 database");
+      hostService = new HostImportService(store, hostToken, model);
+    }
+    server = await startHttpServer({ token, port: Number(rawPort), handler: (request, requestSignal) => activeService.handle(request, requestSignal),
+      ...(hostService ? { hostService } : {}) });
     signal.throwIfAborted();
     onReady({ endpoint: `http://127.0.0.1:${server.port}`, instanceId: activeService.instanceId, modelConnected: model !== undefined });
     await new Promise<void>(resolve => {
@@ -61,7 +72,7 @@ export async function runServer(
   } finally {
     try { await server?.close(); }
     finally {
-      try { await service?.close(); }
+      try { await hostService?.close(); await service?.close(); }
       finally {
         try { chat?.close(); }
         finally { store.close(); }

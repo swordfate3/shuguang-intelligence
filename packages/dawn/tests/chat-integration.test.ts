@@ -9,7 +9,7 @@ import type { TestContext } from "node:test";
 import { runCli } from "../src/runtime/cli.ts";
 import { runServer } from "../src/runtime/serve.ts";
 import { createTokenFile, readTokenFile } from "../src/adapters/transport/token-file.ts";
-import { HttpDawnTransport } from "../../pi-extension/src/http-transport.ts";
+import { HttpDawnTransport } from "../src/adapters/transport/http-client.ts";
 import { SqliteChatStore } from "../src/adapters/storage/sqlite-chat.ts";
 import { SqliteStateStore } from "../src/adapters/storage/sqlite.ts";
 import { randomUUID } from "node:crypto";

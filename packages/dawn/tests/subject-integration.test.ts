@@ -11,7 +11,7 @@ import { runServer } from "../src/runtime/serve.ts";
 import { createTokenFile, readTokenFile } from "../src/adapters/transport/token-file.ts";
 import { SqliteSubjectStore } from "../src/adapters/storage/sqlite-subject.ts";
 import { SqliteStateStore } from "../src/adapters/storage/sqlite.ts";
-import { HttpDawnTransport } from "../../pi-extension/src/http-transport.ts";
+import { HttpDawnTransport } from "../src/adapters/transport/http-client.ts";
 const signal = () => new AbortController().signal;
 
 async function setup(t: TestContext, hang = false, delayMs = 0) {

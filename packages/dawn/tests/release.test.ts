@@ -9,13 +9,13 @@ import { APP_VERSION } from "../src/runtime/version.ts";
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const versionPaths = [resolve(project, "package.json"), resolve(project, "packages/dawn/package.json"),
-  resolve(project, "packages/pi-extension/package.json")];
+  resolve(project, "packages/mcp/package.json"), resolve(project, "packages/pi-package/package.json")];
 const WARNING_FLAG = "--disable-warning=ExperimentalWarning";
 const script = resolve(project, "scripts/acceptance.ts");
 
 test("0.1.0 offline acceptance release gate", { timeout: 50_000 }, async () => {
   const versions = versionPaths.map(path => (JSON.parse(readFileSync(path, "utf8")) as { version?: unknown }).version);
-  assert.deepEqual(versions, ["0.1.0", "0.1.0", "0.1.0"]);
+  assert.deepEqual(versions, ["0.1.0", "0.1.0", "0.1.0", "0.1.0"]);
   assert.equal(APP_VERSION, "0.1.0");
 
   const syntax = spawn(process.execPath, [WARNING_FLAG, "--check", script], { cwd: project, stdio: ["ignore", "pipe", "pipe"] });

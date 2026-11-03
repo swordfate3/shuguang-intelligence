@@ -29,8 +29,16 @@ const HELP = `曙光智慧 ${APP_VERSION} — 六核心独立数字伙伴（显�
   npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- model <选择版本> <模型ID>
   npm start -- request --endpoint http://127.0.0.1:7341 --token-file /private/service.token -- thinking <选择版本> <档位>
   models显式GET远程目录；选择仅存进程、不改主体/预算、不重置实例次数，off仅省略推理参数。
-  Pi薄接口可用/dawn model、/dawn thinking选择器，不切换Pi模型。
+  MCP模型控制只切换曙光，不切换Pi模型。
   应用错误返回非零退出码；取消/响应丢失后先查状态，不自动重试。
+
+宿主会话导入试验（显式新v4，保留pack；不升级原库）：
+  npm start -- host-learning-init --db /path/new-v4.sqlite --id dawn --name 曙光 --limit 100 --learning-limit 4 --pack /path/pack.json
+  npm start -- research-learning-init --db /path/new-v5.sqlite --id dawn --name 曙光 --limit 100 --learning-limit 4 --pack /path/pack.json
+  npm start -- research-recover --db /path/v5.sqlite  # stop ALL old services/runners first
+  npm start -- token-init --token-file /private/host-owner.token
+  serve启用宿主入口需额外 --host-token-file /private/host-owner.token，必须不同于service.token。
+  不自动wake/导入/联网；原v2/v3拒绝新增宿主入口。host-bridge是私有stdio，不是MCP。
 
 自主学习（一次授权本地资料与预算；v3新库，不迁移已有库）：
   npm start -- learning-init --db /path/learning.sqlite --id dawn --name 曙光 --limit 100 --learning-limit 4 --pack /path/pack.json
@@ -79,7 +87,7 @@ export async function runCli(args: readonly string[], signal: AbortSignal): Prom
   if (args.length === 1 && args[0] === "--version") return APP_VERSION;
   if (args.length === 1 && args[0] === "--check") return {
     version: APP_VERSION, stage: "bounded-companion", domainSchemaVersion: 2,
-    storageFormats: { subject: 2, learning: 3, legacy: 1 }, sqliteAdapterAvailable: true,
+    storageFormats: { subject: 2, learning: 3, hostLearning: 4, researchLearning: 5, legacy: 1 }, sqliteAdapterAvailable: true,
     databaseOpened: false, modelConnected: false, transportAvailable: true, serverStarted: false,
     autonomy: false, autonomousLearningAvailable: true,
   };
@@ -88,7 +96,7 @@ export async function runCli(args: readonly string[], signal: AbortSignal): Prom
     const { runModelConfigWizard } = await import("./model-config-wizard.ts");
     return runModelConfigWizard(args, signal);
   }
-  if (command?.startsWith("learning-")) {
+  if (command?.startsWith("learning-") || command === "host-learning-init" || command === "research-learning-init" || command === "research-recover") {
     const { runLearningCli } = await import("./learning-cli.ts");
     return runLearningCli(args, signal);
   }

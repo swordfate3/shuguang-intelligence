@@ -19,21 +19,28 @@ function fixture(t: TestContext) {
   return { dir, data, env, command };
 }
 
-test("container packaging keeps loopback private, non-root execution, fixed Pi version and allow-list context", () => {
+test("container packaging is Dawn-only, keeps MCP source allow-listed and preserves the sole data volume", () => {
   const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
   const compose = readFileSync(join(root, "compose.yaml"), "utf8");
   const ignore = readFileSync(join(root, ".dockerignore"), "utf8");
   const attributes = readFileSync(join(root, ".gitattributes"), "utf8");
-  assert.match(dockerfile, /ARG PI_VERSION=1\.3\.0/);
   assert.match(dockerfile, /USER node/);
   assert.match(dockerfile, /COPY config\/learning-pack\.example\.json/);
+  assert.match(dockerfile, /COPY packages\/mcp\/package\.json/);
+  assert.match(dockerfile, /COPY packages\/mcp\/src\//);
   assert.doesNotMatch(dockerfile, /COPY\s+\.\s|COPY\s+config\/\s/);
+  assert.doesNotMatch(dockerfile, /ARG PI_VERSION|packages\/pi-extension|\/opt\/pi|apt-get install[^\n]*\bgit\b|npm install[^\n]*pi-coding-agent|WORKDIR \/work|\/home\/node\/\.pi/);
   assert.doesNotMatch(compose, /^\s*(?:ports|network_mode|privileged):/m);
   assert.match(compose, /init: true/);
   assert.match(compose, /stop_grace_period: 45s/);
   assert.match(compose, /restart: "no"/);
-  for (const volume of ["dawn-data:/data", "pi-home:/home/node/.pi", "pi-work:/work"]) assert.ok(compose.includes(volume));
+  assert.match(compose, /dawn-data:\/data/);
+  assert.doesNotMatch(compose, /pi-home|pi-work|\/home\/node\/\.pi|\/work/);
+  assert.deepEqual(compose.match(/^\s+- [^:\n]+:\/[^\n]+$/gm), ["      - dawn-data:/data"]);
   assert.match(ignore, /^\*\*$/m);
+  assert.match(ignore, /!packages\/mcp\/package\.json/);
+  assert.match(ignore, /!packages\/mcp\/src\/\*\*/);
+  assert.doesNotMatch(ignore, /pi-extension/);
   assert.match(ignore, /\*\*\/\*\.env/);
   assert.match(attributes, /docker\/\*\.sh text eol=lf/);
   assert.equal(spawnSync("sh", ["-n", entry]).status, 0);
@@ -43,6 +50,7 @@ test("container entrypoint refuses implicit initialization, unknown commands and
   const f = fixture(t);
   assert.equal(f.command("help").status, 0);
   assert.notEqual(f.command("unknown").status, 0);
+  assert.notEqual(f.command("pi").status, 0, "the removed Pi command is not accepted");
   assert.notEqual(f.command("serve").status, 0);
   assert.notEqual(f.command("init").status, 0);
   assert.notEqual(f.command("init", "synthetic", "合成主体", "20", "33").status, 0);
@@ -70,19 +78,30 @@ test("container setup dispatches to unified wizard and rejects unexpected argume
   assert.match(readFileSync(join(root, ".dockerignore"), "utf8"), /^!docker\/setup\.ts$/m);
 });
 
-test("container Pi command injects connection paths and extension only, never loads model credentials", t => {
+test("container MCP launches with exact read-only args, no model env-file/key, and clean stdio", t => {
   const f = fixture(t);
   const bin = join(f.dir, "bin"); mkdirSync(bin);
-  const record = join(f.dir, "pi.json");
-  writeFileSync(join(bin, "pi"), `#!/bin/sh\nexec '${process.execPath}' -e 'require("node:fs").writeFileSync(process.env.TEST_ARGV,JSON.stringify({args:process.argv.slice(1),endpoint:process.env.DAWN_ENDPOINT,token:process.env.DAWN_TOKEN_FILE,hasKey:!!process.env.DAWN_MODEL_API_KEY}))' -- "$@"\n`, { mode: 0o700 });
-  const child = spawnSync("sh", [entry, "pi", "--offline", "--no-session"], {
-    env: { ...f.env, PATH: `${bin}:${process.env.PATH}`, TEST_ARGV: record }, encoding: "utf8", timeout: 5_000,
-  });
-  assert.equal(child.status, 0, child.stderr);
+  const record = join(f.dir, "mcp.json");
+  writeFileSync(join(f.data, "model.env"), "DAWN_MODEL_API_KEY='synthetic-model-secret'\n", { mode: 0o600 });
+  writeFileSync(join(bin, "node"), `#!/bin/sh\nexec '${process.execPath}' -e 'require("node:fs").writeFileSync(process.env.TEST_ARGV,JSON.stringify({args:process.argv.slice(1),hasKey:!!process.env.DAWN_MODEL_API_KEY}));process.stdout.write("MCP-STDOUT\\n")' -- "$@"\n`, { mode: 0o700 });
+  const env = { ...f.env, PATH: `${bin}:${process.env.PATH}`, TEST_ARGV: record };
+  const readOnly = spawnSync("sh", [entry, "mcp"], { env, encoding: "utf8", timeout: 5_000 });
+  assert.equal(readOnly.status, 0, readOnly.stderr);
+  assert.equal(readOnly.stdout, "MCP-STDOUT\n");
   assert.deepEqual(JSON.parse(readFileSync(record, "utf8")), {
-    args: ["-e", join(root, "packages/pi-extension/src/index.ts"), "--offline", "--no-session"],
-    endpoint: "http://127.0.0.1:7341", token: join(f.data, "service.token"), hasKey: false,
+    args: [join(root, "packages/mcp/src/main.ts"), "--endpoint", "http://127.0.0.1:7341", "--token-file", join(f.data, "service.token")],
+    hasKey: false,
   });
+
+  const writable = spawnSync("sh", [entry, "mcp", "--allow-write"], { env, encoding: "utf8", timeout: 5_000 });
+  assert.equal(writable.status, 0, writable.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(record, "utf8")), {
+    args: [join(root, "packages/mcp/src/main.ts"), "--endpoint", "http://127.0.0.1:7341", "--token-file", join(f.data, "service.token"), "--allow-write"],
+    hasKey: false,
+  });
+  assert.notEqual(spawnSync("sh", [entry, "mcp", "--endpoint", "elsewhere"], { env, encoding: "utf8" }).status, 0);
+  assert.notEqual(spawnSync("sh", [entry, "mcp", "--allow-write", "--allow-write"], { env, encoding: "utf8" }).status, 0);
+  assert.match(spawnSync("sh", [entry, "mcp", "bad"], { env, encoding: "utf8" }).stderr, /Usage: dawn-container mcp \[--allow-write\]/);
 });
 
 test("container serve composes exact Node env-file argv and exec forwards TERM without touching a real service", { timeout: 15_000 }, async t => {

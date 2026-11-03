@@ -9,8 +9,8 @@ import { once } from "node:events";
 import { createInitialState } from "../src/legacy/state.ts";
 import { SqliteStateStore } from "../src/adapters/storage/sqlite.ts";
 import { createTokenFile, readTokenFile } from "../src/adapters/transport/token-file.ts";
-import { HttpDawnTransport } from "../../pi-extension/src/http-transport.ts";
-import { DawnClient } from "../../pi-extension/src/client.ts";
+import { HttpDawnTransport } from "../src/adapters/transport/http-client.ts";
+import { DawnClient } from "../src/runtime/control-client.ts";
 
 const entry = fileURLToPath(new URL("../src/main.ts", import.meta.url));
 

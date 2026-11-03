@@ -28,10 +28,10 @@ function readPack(path: string) {
 export async function runLearningCli(args: readonly string[], signal: AbortSignal): Promise<unknown> {
   signal.throwIfAborted();
   const command = args[0];
-  if (!command || !["learning-init", "learning-status", "learning-run", "learning-stop", "learning-recover"].includes(command)) {
+  if (!command || !["learning-init", "host-learning-init", "research-learning-init", "research-recover", "learning-status", "learning-run", "learning-stop", "learning-recover"].includes(command)) {
     throw new Error("Unknown learning command");
   }
-  const allowed = command === "learning-init" ? ["--db", "--id", "--name", "--limit", "--learning-limit", "--pack"]
+  const allowed = command === "learning-init" || command === "host-learning-init" || command === "research-learning-init" ? ["--db", "--id", "--name", "--limit", "--learning-limit", "--pack"]
     : command === "learning-run" ? ["--db", "--model-config"] : ["--db"];
   const options = new Map<string, string>();
   for (let i = 1; i < args.length; i += 2) {
@@ -43,7 +43,7 @@ export async function runLearningCli(args: readonly string[], signal: AbortSigna
   const path = options.get("--db")!;
   if (!isAbsolute(path)) throw new Error("Explicit absolute subject database required");
   let store: SqliteSubjectStore;
-  if (command === "learning-init") {
+  if (command === "learning-init" || command === "host-learning-init" || command === "research-learning-init") {
     const limit = options.get("--limit")!, learningLimit = options.get("--learning-limit")!;
     if (!/^[1-9]\d*$/.test(limit) || !/^[1-9]\d*$/.test(learningLimit) || Number(limit) > 10000 ||
         Number(learningLimit) < 2 || Number(learningLimit) > 32 || Number(learningLimit) > Number(limit)) throw new Error("Invalid permanent learning budget");
@@ -53,9 +53,17 @@ export async function runLearningCli(args: readonly string[], signal: AbortSigna
       { id: "understanding", description: "理解问题，诚实认识自己的未知", topics: ["学习", "理解", "探索"], weight: 0.7 },
       { id: "connection", description: "尊重边界，保持真诚交流", topics: ["交流", "信任", "陪伴"], weight: 0.7 },
     ] } };
-    store = SqliteSubjectStore.createLearning(path, state, Number(limit), pack, Number(learningLimit), signal);
+    store = command === "research-learning-init"
+      ? SqliteSubjectStore.createResearchLearning(path, state, Number(limit), pack, Number(learningLimit), signal)
+      : command === "host-learning-init"
+      ? SqliteSubjectStore.createHostLearning(path, state, Number(limit), pack, Number(learningLimit), signal)
+      : SqliteSubjectStore.createLearning(path, state, Number(limit), pack, Number(learningLimit), signal);
   } else { store = SqliteSubjectStore.open(path, signal); }
   try {
+    if (command === "research-recover") {
+      await store.pauseResearchOnRestart(signal);
+      return { status: "paused_restart", unknownRequestsRetried: false };
+    }
     const authorized = await store.learningStatus(signal);
     if (!authorized) throw new Error("This subject has no explicit learning authorization; no migration performed");
     if (command === "learning-run") {

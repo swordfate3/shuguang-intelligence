@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "runId": "public-web-basics-1",
+  "expiresAt": "2099-01-01T00:00:00.000Z",
+  "maxSearches": 2,
+  "maxModelCalls": 4,
+  "goals": [
+    {
+      "id": "http-status",
+      "question": "HTTP 404 与 503 状态码各表达什么，遇到它们时下一步应如何区分处理？",
+      "query": "HTTP 404 503 status meaning MDN",
+      "topics": ["http", "network"],
+      "practice": [{ "id": "http-practice", "prompt": "HTTP 中表示服务暂不可用的三位数字状态码是什么？仅回答数字。", "answer": "503" }],
+      "assessment": [{ "id": "http-heldout", "prompt": "已知服务器可达，但请求资源不存在，对应的三位数字状态码是什么？仅回答数字。", "answer": "404" }]
+    },
+    {
+      "id": "dns-records",
+      "question": "DNS 的 A 和 AAAA 记录分别指向哪一种 IP 地址？",
+      "query": "DNS A AAAA record IPv4 IPv6 Cloudflare",
+      "topics": ["dns", "network"],
+      "practice": [{ "id": "dns-practice", "prompt": "A 记录返回哪种 IP 地址版本？仅回答 IPv4 或 IPv6。", "answer": "IPv4" }],
+      "assessment": [{ "id": "dns-heldout", "prompt": "AAAA 记录返回哪种 IP 地址版本？仅回答 IPv4 或 IPv6。", "answer": "IPv6" }]
+    }
+  ]
+}

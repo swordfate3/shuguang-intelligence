@@ -67,17 +67,20 @@ test("explicit build refuses a running service and never pulls Git or changes da
   assert.equal(commands(f.calls()).filter(c => c[0] === "build").length, 1);
   assert.ok(!commands(f.calls()).some(c => ["up", "run", "down", "rm"].includes(c[0]!)));
 });
-test("TTY first start builds missing image, configures before up, checks ready then opens Pi", t => {
+test("TTY first start builds missing image, configures before up, checks readiness and returns with MCP guidance", t => {
   const f = fixture(t);
   const result = f.run([], { TEST_IMAGE: "0" }, true);
   assert.equal(result.status, 0, result.stderr + result.stdout);
   assert.deepEqual(commands(f.calls()), [
     ["ps", "--status", "running", "-q", "dawn"], ["config", "--images"], ["build", "dawn"],
     ["run", "--rm", "--no-deps", "dawn", "setup"], ["up", "-d", "--no-build", "dawn"],
-    ["exec", "-T", "dawn", "dawn-container", "status"], ["exec", "dawn", "dawn-container", "pi"],
+    ["exec", "-T", "dawn", "dawn-container", "status"],
   ]);
+  assert.match(result.stdout, /服务已就绪，已返回终端/);
+  assert.match(result.stdout, /docker compose exec -T dawn dawn-container mcp/);
+  assert.doesNotMatch(result.stdout, /Pi|Pi 输入框/);
 });
-test("existing image is reused and failed setup prevents up/Pi without deletion", t => {
+test("existing image is reused and failed setup prevents up without deletion", t => {
   const f = fixture(t);
   assert.notEqual(f.run([], { TEST_SETUP_FAIL: "1" }, true).status, 0);
   assert.ok(commands(f.calls()).some(c => c[0] === "run"));
@@ -91,14 +94,23 @@ test("stopped configured installation reuses image and running service connects 
   assert.equal(f.run([], { TEST_RUNNING: "1" }, true).status, 0);
   assert.deepEqual(commands(f.calls().slice(before)), [
     ["ps", "--status", "running", "-q", "dawn"], ["exec", "-T", "dawn", "dawn-container", "status"],
-    ["exec", "dawn", "dawn-container", "pi"],
   ]);
 });
 
-test("running service bypasses build/setup and failed readiness is bounded without opening Pi", t => {
+test("running service starts from a non-TTY shell; failed readiness is bounded without starting MCP", t => {
   const f = fixture(t);
   assert.notEqual(f.run([], { TEST_RUNNING: "1", TEST_NOT_READY: "1" }, true).status, 0);
   const calls = commands(f.calls());
   assert.equal(calls.filter(c => c[0] === "exec").length, 5);
-  assert.ok(!calls.some(c => ["build", "run", "up"].includes(c[0]!) || c.at(-1) === "pi"));
+  assert.ok(!calls.some(c => ["build", "run", "up"].includes(c[0]!) || c.at(-1) === "mcp"));
+});
+
+test("already-running service can be checked from a non-TTY terminal without starting MCP", t => {
+  const f = fixture(t);
+  const result = f.run([], { TEST_RUNNING: "1" });
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+  assert.deepEqual(commands(f.calls()), [
+    ["ps", "--status", "running", "-q", "dawn"], ["exec", "-T", "dawn", "dawn-container", "status"],
+  ]);
+  assert.match(result.stdout, /docker compose exec -T dawn dawn-container mcp/);
 });

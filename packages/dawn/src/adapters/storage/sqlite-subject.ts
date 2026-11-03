@@ -11,10 +11,19 @@ import type { SubjectAttempt, SubjectBudget, SubjectStore, DialoguePair, TurnCom
 import type { LearningAttempt, LearningAttemptDetail, LearningResult, LearningStatus, LearningStore } from "../../runtime/learning-store.ts";
 import type { LearningPack } from "../../core/learning.ts";
 import { assertLearningPack, gradeAnswers } from "../../core/learning.ts";
+import type { ConversationBatch } from "../../core/conversation-source.ts";
+import type { ConversationStore, ConversationGrant, ConversationImportStatus } from "../../runtime/conversation-store.ts";
+import { SqliteConversationLedger } from "./sqlite-conversation.ts";
 
+import { assertResearchPlan, assertResearchReceipt, selectResearchGoal, type ResearchPlan, type ResearchReceipt } from "../../core/research.ts";
+import type { ResearchStore, ResearchStatus, ResearchTaskSummary, ResearchClaim, ResearchAttempt, ResearchProjection } from "../../runtime/research-store.ts";
+import { SqliteResearchLedger, researchJSON, researchId, researchStatusValue, runTasks, runAttempts, taskAttempts, receiptFor, safeTask, goalFor, type ResearchLedger } from "./sqlite-research.ts";
+
+const RESEARCH_DB_VERSION = 5;
 const APPLICATION_ID = 0x44535732; // DSW2: separate identity from legacy Dawn and chat databases.
 const DB_VERSION = 2;
 const LEARNING_DB_VERSION = 3;
+const HOST_DB_VERSION = 4;
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_MESSAGE_CHARS = 16_000;
 const MAX_WIRE_BYTES = 64 * 1024;
@@ -137,7 +146,7 @@ interface StoredAttempt {
 }
 
 /** Durable six-core subject state and the precharged model-turn ledger; no migration or refund path. */
-export class SqliteSubjectStore implements SubjectStore, LearningStore {
+export class SqliteSubjectStore implements SubjectStore, LearningStore, ConversationStore, ResearchStore {
   readonly #db: DatabaseSync;
   readonly #dbVersion: number;
   #closed = false;
@@ -161,8 +170,32 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
     return this.#create(path, initial, limit, signal, { pack, learningLimit });
   }
 
+  /** Explicit independent v4 creation; existing v2/v3 databases are never migrated. */
+  static createHostLearning(path: string, initial: SubjectState, limit: number, pack: LearningPack,
+    learningLimit: number, signal: AbortSignal): SqliteSubjectStore {
+    validLimit(limit);
+    if (!Number.isSafeInteger(learningLimit) || learningLimit < 2 || learningLimit > 32 || learningLimit > limit) {
+      throw new Error("Learning limit must be an integer from 2 to 32 and no greater than the subject limit");
+    }
+    assertLearningPack(pack);
+    return this.#create(path, initial, limit, signal, { pack, learningLimit, host: true });
+  }
+
+  /** Explicit independent v5; never migrates v2/v3/v4. Pack and conversation remain available. */
+  static createResearchLearning(path: string, initial: SubjectState, limit: number, pack: LearningPack,
+    learningLimit: number, signal: AbortSignal): SqliteSubjectStore {
+    validLimit(limit);
+    if (!Number.isSafeInteger(learningLimit) || learningLimit < 2 || learningLimit > 32 || learningLimit > limit) throw new Error("Invalid learning limit");
+    assertLearningPack(pack);
+    return this.#create(path, initial, limit, signal, { pack, learningLimit, host: true, research: true });
+  }
+
+  get supportsResearch(): boolean { return this.#dbVersion === RESEARCH_DB_VERSION; }
+  get supportsHostImport(): boolean { return this.#dbVersion === HOST_DB_VERSION || this.supportsResearch; }
+  get #supportsLearning(): boolean { return this.#dbVersion === LEARNING_DB_VERSION || this.supportsHostImport; }
+
   static #create(path: string, initial: SubjectState, limit: number, signal: AbortSignal,
-    learning?: { readonly pack: LearningPack; readonly learningLimit: number }): SqliteSubjectStore {
+    learning?: { readonly pack: LearningPack; readonly learningLimit: number; readonly host?: boolean; readonly research?: boolean }): SqliteSubjectStore {
     signal.throwIfAborted();
     validLimit(limit);
     assertSubjectState(initial);
@@ -223,6 +256,14 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
           ) STRICT;
           PRAGMA user_version = ${LEARNING_DB_VERSION};
         `);
+        if (learning.host) {
+          SqliteConversationLedger.create(db);
+          db.exec(`PRAGMA user_version = ${HOST_DB_VERSION};`);
+        }
+        if (learning.research) {
+          SqliteResearchLedger.create(db);
+          db.exec(`PRAGMA user_version = ${RESEARCH_DB_VERSION};`);
+        }
       } else db.exec(`PRAGMA user_version = ${DB_VERSION};`);
       db.prepare("INSERT INTO subject (singleton, revision, snapshot) VALUES (1, 0, ?)").run(snapshot);
       db.prepare("INSERT INTO bootstrap (singleton, snapshot) VALUES (1, ?)").run(snapshot);
@@ -233,7 +274,8 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
       }
       signal.throwIfAborted();
       db.exec("COMMIT");
-      return new SqliteSubjectStore(db, learning ? LEARNING_DB_VERSION : DB_VERSION);
+      if (learning?.host) db.exec("PRAGMA foreign_keys = ON;");
+      return new SqliteSubjectStore(db, learning?.research ? RESEARCH_DB_VERSION : learning?.host ? HOST_DB_VERSION : learning ? LEARNING_DB_VERSION : DB_VERSION);
     } catch (error) {
       try { db.exec("ROLLBACK"); } catch { /* preserve original failure */ }
       db.close();
@@ -242,7 +284,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
     }
   }
 
-  /** Existing matching DSW2 schema v2/v3 only. It never adopts or upgrades another file. */
+  /** Existing matching DSW2 schema v2/v3/v4 only. It never adopts or upgrades another file. */
   static open(path: string, signal: AbortSignal): SqliteSubjectStore {
     signal.throwIfAborted();
     if (!lstatSync(path).isFile()) throw new Error("Subject database must be a regular non-symlink file");
@@ -250,8 +292,9 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
     try {
       const version = db.prepare("PRAGMA user_version").get()?.user_version;
       const app = db.prepare("PRAGMA application_id").get()?.application_id;
-      if ((version !== DB_VERSION && version !== LEARNING_DB_VERSION) || app !== APPLICATION_ID) throw new Error("Unsupported subject database identity or schema version; no migration performed");
+      if ((version !== DB_VERSION && version !== LEARNING_DB_VERSION && version !== HOST_DB_VERSION && version !== RESEARCH_DB_VERSION) || app !== APPLICATION_ID) throw new Error("Unsupported subject database identity or schema version; no migration performed");
       db.exec("PRAGMA busy_timeout = 1000; PRAGMA synchronous = FULL;");
+      if (version === HOST_DB_VERSION || version === RESEARCH_DB_VERSION) db.exec("PRAGMA foreign_keys = ON;");
       const store = new SqliteSubjectStore(db, version as number);
       store.#transaction("BEGIN", () => store.#readValidated(), signal);
       return store;
@@ -286,7 +329,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
   }
 
   #learningConfiguration(): { pack: LearningPack; limit: number; status: "active" | "stopped" } | undefined {
-    if (this.#dbVersion !== LEARNING_DB_VERSION) return undefined;
+    if (!this.#supportsLearning) return undefined;
     const packRow = this.#db.prepare("SELECT packJSON FROM learning_pack WHERE singleton = 1").get();
     const grant = this.#db.prepare('SELECT "limit", status FROM learning_grant WHERE singleton = 1').get();
     if (!packRow || !grant || typeof packRow.packJSON !== "string" ||
@@ -301,7 +344,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
   }
 
   #storedLearningAttempts(): StoredLearningAttempt[] {
-    if (this.#dbVersion !== LEARNING_DB_VERSION) return [];
+    if (!this.#supportsLearning) return [];
     return this.#db.prepare(`SELECT sequence, id, goalId, phase, expectedRevision, status, resultJSON, at
       FROM learning_attempts ORDER BY sequence`).all() as unknown as StoredLearningAttempt[];
   }
@@ -451,7 +494,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
     for (const goalId of failedAssessmentGoals) failedGoals.add(goalId);
     const terminal = new Set([...failedGoals, ...completedGoals]).size === config.pack.goals.length;
     const subjectLimit = this.#metaLimit();
-    const sharedCount = this.#db.prepare("SELECT (SELECT COUNT(*) FROM attempts) + (SELECT COUNT(*) FROM learning_attempts) AS amount").get()?.amount;
+    const sharedCount = this.#sharedCount();
     if (!Number.isSafeInteger(sharedCount)) throw new Error("Invalid shared budget count");
     const hasStudyToResume = rows.some(row => row.phase === "study" && row.status === "completed" &&
       !failedGoals.has(row.goalId) && !completedGoals.has(row.goalId));
@@ -529,6 +572,13 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
       : new Map<number, CycleInput>();
     const replayFrom = reusableCheckpoint ? reusableCheckpoint.eventJsons.length : 0;
     const completedLearningEvents = new Set<string>();
+    const host = this.supportsHostImport ? new SqliteConversationLedger(this.#db) : undefined;
+    const hostLedger = host?.validate(state);
+    const completedSourceEvents = new Set<string>();
+    const research = this.supportsResearch ? new SqliteResearchLedger(this.#db) : undefined;
+    const researchLedger = research?.validate();
+    const completedResearchEvents = new Set<string>();
+    const awakeRevisions = new Set<number>(replay.lifecycle === "awake" ? [replay.revision] : []);
     for (let index = replayFrom; index < eventRows.length; index++) {
       const row = eventRows[index]!;
       const event = decodeJson(row.eventJSON, "subject event");
@@ -551,6 +601,20 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
         const result = runSubjectCycle(replay, input, authority);
         cycleInputs.set(result.state.revision, input);
         replay = result.state;
+      } else if (type === "source_batch_consumed" && host && hostLedger) {
+        const sourceEvent = exactRecord(event, ["type", "batchId", "expectedRevision", "at", "sourceIds"], "source consumption event");
+        const trusted = hostLedger.consumptions.get(sourceEvent.batchId as string);
+        if (!trusted || !trusted.sourceIds.length || completedSourceEvents.has(trusted.batchId) || !isDeepStrictEqual(event, trusted)) {
+          throw new Error("Source consumption event does not match its trusted ledger");
+        }
+        for (const input of host.cycles(hostLedger, replay, trusted)) replay = runSubjectCycle(replay, input, this.#learningAuthority()).state;
+        completedSourceEvents.add(trusted.batchId);
+      } else if (type === "research_phase_completed" && research && researchLedger) {
+        const e = exactRecord(event, ["type", "attemptId", "at"], "research completion event");
+        const attempt = researchLedger.attempts.get(e.attemptId as string);
+        if (!attempt || attempt.status !== "completed" || e.at !== attempt.at || completedResearchEvents.has(attempt.attempt.id)) throw new Error("Invalid research completion event");
+        for (const input of research.cycles(researchLedger, replay, attempt)) replay = runSubjectCycle(replay, input, this.#learningAuthority()).state;
+        completedResearchEvents.add(attempt.attempt.id);
       } else if (type === "learning_completed") {
         const learningEvent = exactRecord(event, ["type", "attemptId", "result", "at", "cycles"], "learning completion event");
         const attempt = this.#storedLearningAttempts().find(item => item.id === learningEvent.attemptId);
@@ -569,9 +633,26 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
         completedLearningEvents.add(attempt.id);
       } else throw new Error("Unknown subject event type");
       if (replay.revision !== row.revision) throw new Error("Subject event revision transition mismatch");
+      if (replay.lifecycle === "awake") awakeRevisions.add(replay.revision);
     }
     if ((eventRows.at(-1)?.revision ?? 0) !== state.revision || !isDeepStrictEqual(replay, state)) {
       throw new Error("Subject snapshot and replayed event history mismatch");
+    }
+    if (hostLedger) {
+      for (const consumed of hostLedger.consumptions.values()) {
+        if (consumed.sourceIds.length ? !completedSourceEvents.has(consumed.batchId) : !awakeRevisions.has(consumed.expectedRevision)) {
+          throw new Error("Conversation consumption has missing event or invalid zero-source revision");
+        }
+      }
+    }
+    if (researchLedger) {
+      for (const a of researchLedger.attempts.values()) {
+        if (!awakeRevisions.has(a.attempt.expectedRevision) || a.attempt.expectedRevision > state.revision || (a.status === "completed") !== completedResearchEvents.has(a.attempt.id)) throw new Error("Research attempt missing event or invalid revision");
+      }
+      const pending = [...researchLedger.attempts.values()].filter(a => a.status === "pending").length;
+      const other = this.#db.prepare("SELECT (SELECT COUNT(*) FROM attempts WHERE status='pending') + (SELECT COUNT(*) FROM learning_attempts WHERE status='pending') AS n").get()!.n as number;
+      if (pending + other > 1) throw new Error("Multiple shared pending model calls");
+      if (this.#sharedCount() > limit) throw new Error("Shared subject budget exceeded");
     }
     this.#validateAttempts(limit, state.revision);
     const learningAttempts = this.#validateLearningAttempts(limit, state.revision);
@@ -579,7 +660,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
     if (completedLearning.length !== completedLearningEvents.size || completedLearning.some(attempt => !completedLearningEvents.has(attempt.id))) {
       throw new Error("Learning attempt ledger has a missing or orphan completion event");
     }
-    if (this.#dbVersion === LEARNING_DB_VERSION) {
+    if (this.#supportsLearning) {
       const chatPending = this.#db.prepare("SELECT COUNT(*) AS amount FROM attempts WHERE status = 'pending'").get()?.amount;
       if (chatPending && learningAttempts.some(attempt => attempt.status === "pending")) throw new Error("Chat and learning reservations cannot be pending together");
       const chatCount = this.#db.prepare("SELECT COUNT(*) AS amount FROM attempts").get()?.amount;
@@ -621,6 +702,67 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
     if (consumedRevisions.size !== cycleInputs.size) throw new Error("Unmatched subject cycle events");
   }
 
+  #conversationLedger(): SqliteConversationLedger {
+    if (!this.supportsHostImport) throw new Error("Host import requires explicitly created v4; no migration performed");
+    return new SqliteConversationLedger(this.#db);
+  }
+
+  async authorizeConversation(batch: ConversationBatch, bindingId: string, expiresAt: string, signal: AbortSignal): Promise<ConversationGrant> {
+    const host = this.#conversationLedger();
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const current = this.#readValidated();
+      return host.authorize(host.validate(current), batch, bindingId, expiresAt);
+    }, signal);
+  }
+
+  async acceptConversation(batch: ConversationBatch, grantId: string, bindingId: string, signal: AbortSignal): Promise<ConversationImportStatus> {
+    const host = this.#conversationLedger();
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const current = this.#readValidated();
+      return host.accept(host.validate(current), current, batch, grantId, bindingId);
+    }, signal);
+  }
+
+  async consumeConversation(batchId: string, grantId: string, bindingId: string, at: string, signal: AbortSignal): Promise<ConversationImportStatus> {
+    const host = this.#conversationLedger();
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const current = this.#readValidated();
+      const ledger = host.validate(current);
+      const prepared = host.prepareConsume(ledger, current, batchId, grantId, bindingId, at);
+      if (!("type" in prepared)) return prepared;
+      if (this.#researchPending() || this.#db.prepare("SELECT 1 FROM attempts WHERE status = 'pending' UNION ALL SELECT 1 FROM learning_attempts WHERE status = 'pending' LIMIT 1").get()) {
+        throw new Error("A model attempt is pending; resolve it before consuming conversation");
+      }
+      if (!this.#hasLearningCapacity(current, prepared.sourceIds.length)) throw new Error("Conversation subject capacity exhausted");
+      let next = current;
+      for (const input of host.cycles(ledger, current, prepared)) next = runSubjectCycle(next, input, this.#learningAuthority()).state;
+      const snapshot = encodeSnapshot(next); // Whole batch preflight; never partial memory or silent eviction.
+      if (prepared.sourceIds.length) {
+        const changed = this.#db.prepare("UPDATE subject SET revision = ?, snapshot = ? WHERE singleton = 1 AND revision = ?")
+          .run(next.revision, snapshot, current.revision);
+        if (changed.changes !== 1) throw new CoreRevisionConflictError();
+        this.#db.prepare('INSERT INTO events(revision,"eventJSON") VALUES (?,?)').run(next.revision, encodeEvent(prepared));
+      }
+      return host.commitConsume(prepared);
+    }, signal);
+  }
+
+  async conversationImportStatus(batchId: string, bindingId: string, signal: AbortSignal): Promise<ConversationImportStatus | undefined> {
+    const host = this.#conversationLedger();
+    return this.#transaction("BEGIN", () => {
+      const current = this.#readValidated();
+      return host.status(host.validate(current), batchId, bindingId);
+    }, signal);
+  }
+
+  async revokeConversation(grantId: string, bindingId: string, signal: AbortSignal): Promise<void> {
+    const host = this.#conversationLedger();
+    this.#transaction("BEGIN IMMEDIATE", () => {
+      const current = this.#readValidated();
+      host.revoke(host.validate(current), grantId, bindingId);
+    }, signal);
+  }
+
   async read(signal: AbortSignal): Promise<SubjectState> {
     return this.#transaction("BEGIN", () => this.#readValidated(), signal);
   }
@@ -631,6 +773,11 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
       const current = this.#readValidated();
       if (current.revision !== expectedRevision) throw new CoreRevisionConflictError();
       const next = changeCoreLifecycle(current, expectedRevision, lifecycle, at);
+      if (lifecycle === "sleeping" && this.supportsHostImport) {
+        const host = this.#conversationLedger();
+        host.revokeAll(host.validate(current));
+      }
+      if (lifecycle === "sleeping" && this.supportsResearch) this.#fenceResearchRuns("stopped");
       if (next.revision === current.revision) return current;
       const event = encodeEvent({ type: "lifecycle_changed", expectedRevision, lifecycle, at });
       const updated = this.#db.prepare("UPDATE subject SET revision = ?, snapshot = ? WHERE singleton = 1 AND revision = ?")
@@ -653,12 +800,14 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
         throw new Error("Subject request id has already been used");
       }
       const limit = this.#metaLimit();
-      if (this.#dbVersion === LEARNING_DB_VERSION &&
+      if (this.supportsResearch) this.#researchModelIdle();
+      if (this.#researchPending()) throw new Error("A research attempt is pending");
+      if (this.#supportsLearning &&
           this.#db.prepare("SELECT 1 AS found FROM learning_attempts WHERE status = 'pending' LIMIT 1").get()) {
         throw new Error("A learning attempt is pending; resolve it before reserving chat");
       }
-      const count = this.#dbVersion === LEARNING_DB_VERSION
-        ? this.#db.prepare("SELECT (SELECT COUNT(*) FROM attempts) + (SELECT COUNT(*) FROM learning_attempts) AS amount").get()?.amount
+      const count = this.#supportsLearning
+        ? this.#sharedCount()
         : this.#db.prepare("SELECT COUNT(*) AS amount FROM attempts").get()?.amount;
       if (!Number.isSafeInteger(count) || (count as number) >= limit) throw new Error("Subject call budget exhausted");
       const result = this.#db.prepare(`INSERT INTO attempts (requestId, expectedRevision, user, status)
@@ -797,6 +946,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
       if (this.#db.prepare("SELECT 1 AS found FROM attempts WHERE status = 'pending' LIMIT 1").get()) {
         throw new Error("A chat attempt is pending; resolve it before reserving learning");
       }
+      if (this.#researchPending()) throw new Error("A research attempt is pending");
       const goal = config.pack.goals.find(item => item.id === goalId);
       if (!goal) throw new Error("Unknown learning goal");
       const history = this.#storedLearningAttempts().filter(item => item.goalId === goalId);
@@ -804,7 +954,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
         throw new Error("Learning goal phase is invalid or already reserved");
       }
       const learningCount = this.#storedLearningAttempts().length;
-      const sharedCount = this.#db.prepare("SELECT (SELECT COUNT(*) FROM attempts) + (SELECT COUNT(*) FROM learning_attempts) AS amount").get()?.amount;
+      const sharedCount = this.#sharedCount();
       const minimumCost = phase === "study" ? 2 : 1;
       if (learningCount + minimumCost > config.limit) throw new Error("Learning budget exhausted");
       if (!Number.isSafeInteger(sharedCount) || (sharedCount as number) + minimumCost > this.#metaLimit()) throw new Error("Subject call budget exhausted");
@@ -907,7 +1057,7 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
         }
         counts[row.status as keyof typeof counts] = row.amount as number;
       }
-      if (this.#dbVersion === LEARNING_DB_VERSION) {
+      if (this.#supportsLearning) {
         const learningRows = this.#db.prepare("SELECT status, COUNT(*) AS amount FROM learning_attempts GROUP BY status").all();
         for (const row of learningRows) {
           if (typeof row.status !== "string" || !Object.hasOwn(counts, row.status) || !Number.isSafeInteger(row.amount)) {
@@ -916,11 +1066,198 @@ export class SqliteSubjectStore implements SubjectStore, LearningStore {
           counts[row.status as keyof typeof counts] += row.amount as number;
         }
       }
+      if (this.supportsResearch) {
+        for (const a of new SqliteResearchLedger(this.#db).validate().attempts.values()) counts[a.status === "unknown" ? "failed" : a.status]++;
+      }
       const reserved = counts.completed + counts.failed + counts.pending;
       if (!Number.isSafeInteger(reserved) || reserved > limit) throw new Error("Invalid subject budget totals");
       // Keep `current` read in this transaction so a corrupt snapshot never yields plausible budget data.
       void current;
       return { limit, reserved, ...counts };
+    }, signal);
+  }
+
+  #sharedCount(): number {
+    const n = this.#db.prepare("SELECT (SELECT COUNT(*) FROM attempts) + (SELECT COUNT(*) FROM learning_attempts) AS n").get()!.n as number;
+    return n + (this.supportsResearch ? this.#db.prepare("SELECT COUNT(*) AS n FROM research_model_attempts").get()!.n as number : 0);
+  }
+  #researchPending(): boolean {
+    return this.supportsResearch && [...new SqliteResearchLedger(this.#db).validate().attempts.values()].some(a => a.status === "pending");
+  }
+  #research(): SqliteResearchLedger {
+    if (!this.supportsResearch) throw new Error("Research requires explicitly created v5; no migration performed");
+    return new SqliteResearchLedger(this.#db);
+  }
+  #boundResearch(l: ResearchLedger, runId: string, bindingId: string, active = false): void {
+    validRequestId(runId); validRequestId(bindingId);
+    const run = l.runs.get(runId);
+    if (!run || run.bindingId !== bindingId) throw new Error("Research binding mismatch");
+    if (active && (run.status !== "active" || run.plan.expiresAt <= new Date().toISOString())) throw new Error("Research run inactive or expired");
+  }
+  #researchAwake(state: SubjectState): void {
+    if (state.lifecycle !== "awake") throw new Error("Subject must be awake for research");
+  }
+  #researchModelIdle(): void {
+    if (this.#researchPending() || this.#db.prepare("SELECT 1 FROM attempts WHERE status='pending' UNION ALL SELECT 1 FROM learning_attempts WHERE status='pending' LIMIT 1").get()) throw new Error("A shared model attempt is pending");
+  }
+  #settleResearch(host: SqliteResearchLedger, l: ResearchLedger, runId: string): void {
+    const run = l.runs.get(runId)!; const tasks = runTasks(l, runId);
+    if (run.status !== "active" || tasks.some(t => ["queued", "claimed", "accepted"].includes(t.status))) return;
+    const status = tasks.length === run.plan.goals.length ? "completed" :
+      tasks.length >= run.plan.maxSearches || runAttempts(l, runId).length >= run.plan.maxModelCalls || this.#sharedCount() >= this.#metaLimit() ? "exhausted" : null;
+    if (status) host.apply(l, { type: "terminal", runId, status, at: new Date().toISOString() });
+  }
+  async startResearch(plan: ResearchPlan, bindingId: string, signal: AbortSignal): Promise<ResearchStatus> {
+    assertResearchPlan(plan); validRequestId(bindingId);
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const state = this.#readValidated(); this.#researchAwake(state);
+      const host = this.#research(); const l = host.validate();
+      const old = l.runs.get(plan.runId);
+      if (old) {
+        this.#boundResearch(l, plan.runId, bindingId);
+        if (researchJSON(old.plan) !== researchJSON(plan)) throw new Error("Research plan conflict");
+      } else host.apply(l, { type: "start", plan, bindingId, at: new Date().toISOString() });
+      return researchStatusValue(l, plan.runId);
+    }, signal);
+  }
+  async researchStatus(runId: string, bindingId: string, signal: AbortSignal): Promise<ResearchStatus> {
+    return this.#transaction("BEGIN", () => {
+      this.#readValidated(); const l = this.#research().validate(); this.#boundResearch(l, runId, bindingId);
+      return researchStatusValue(l, runId);
+    }, signal);
+  }
+  async ownerResearchStatus(runId: string, signal: AbortSignal): Promise<ResearchStatus> {
+    return this.#transaction("BEGIN", () => { this.#readValidated(); return researchStatusValue(this.#research().validate(), runId); }, signal);
+  }
+  async ownerStopResearch(runId: string, signal: AbortSignal): Promise<ResearchStatus> {
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      this.#readValidated(); const host = this.#research();
+      if (!host.validate().runs.has(runId)) throw new Error("Unknown research run");
+      this.#fenceResearchRuns("stopped", undefined, runId);
+      return researchStatusValue(host.validate(), runId);
+    }, signal);
+  }
+  async nextResearchTask(runId: string, bindingId: string, signal: AbortSignal): Promise<ResearchTaskSummary | null> {
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const state = this.#readValidated(); this.#researchAwake(state);
+      const host = this.#research(); const l = host.validate(); this.#boundResearch(l, runId, bindingId, true);
+      this.#settleResearch(host, l, runId); if (l.runs.get(runId)!.status !== "active") return null;
+      const tasks = runTasks(l, runId); const outstanding = tasks.find(t => ["queued", "claimed", "accepted"].includes(t.status));
+      if (outstanding) return outstanding.status === "queued" ? safeTask(outstanding) : null;
+      const goal = selectResearchGoal(l.runs.get(runId)!.plan, state, tasks.map(t => t.goalId));
+      if (!goal) return null;
+      const minimum = goal.assessment.length ? 2 : 1;
+      if (runAttempts(l, runId).length + minimum > l.runs.get(runId)!.plan.maxModelCalls || this.#sharedCount() + minimum > this.#metaLimit() || !this.#hasLearningCapacity(state, 6)) {
+        host.apply(l, { type: "fence", runId, status: "exhausted", at: new Date().toISOString() }); return null;
+      }
+      host.apply(l, { type: "queue", runId, goalId: goal.id, at: new Date().toISOString() });
+      return safeTask(l.tasks.get(researchId(runId, goal.id))!);
+    }, signal);
+  }
+  async claimResearch(taskId: string, expectedRevision: number, bindingId: string, signal: AbortSignal): Promise<ResearchClaim> {
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      this.#researchAwake(this.#readValidated()); const host = this.#research(); const l = host.validate();
+      host.apply(l, { type: "claim", taskId, bindingId, revision: expectedRevision, at: new Date().toISOString() });
+      const task = l.tasks.get(taskId)!; const run = l.runs.get(task.runId)!;
+      return { ...safeTask(task), query: goalFor(l, taskId).query, claimId: researchId(taskId, "claim"), fence: run.fence, maxResults: 3, expiresAt: run.plan.expiresAt };
+    }, signal);
+  }
+  async submitResearch(receipt: ResearchReceipt, bindingId: string, signal: AbortSignal): Promise<ResearchStatus> {
+    assertResearchReceipt(receipt);
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const state = this.#readValidated(); const host = this.#research(); const l = host.validate();
+      const task = l.tasks.get(receipt.taskId); if (!task) throw new Error("Unknown research task");
+      this.#boundResearch(l, task.runId, bindingId);
+      const old = l.receipts.get(receipt.receiptId);
+      if (old) {
+        if (researchJSON(old) !== researchJSON(receipt)) throw new Error("Research receipt ID conflict");
+        return researchStatusValue(l, task.runId);
+      }
+      this.#researchAwake(state);
+      host.apply(l, { type: "submit", receipt, bindingId, at: new Date().toISOString() });
+      this.#settleResearch(host, l, task.runId);
+      return researchStatusValue(l, task.runId);
+    }, signal);
+  }
+  async reserveResearch(runId: string, bindingId: string, signal: AbortSignal): Promise<{ attempt: ResearchAttempt; projection: ResearchProjection } | null> {
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const state = this.#readValidated(); this.#researchAwake(state);
+      const host = this.#research(); const l = host.validate(); this.#boundResearch(l, runId, bindingId, true); this.#researchModelIdle();
+      const task = runTasks(l, runId).find(t => t.status === "accepted"); if (!task) return null;
+      const goal = goalFor(l, task.taskId); const run = l.runs.get(runId)!;
+      const prior = taskAttempts(l, task.taskId); const phase = prior.length ? "assessment" : "study";
+      const minimum = phase === "study" && goal.assessment.length ? 2 : 1;
+      if (runAttempts(l, runId).length + minimum > run.plan.maxModelCalls || this.#sharedCount() + minimum > this.#metaLimit()) {
+        host.apply(l, { type: "fence", runId, status: "exhausted", at: new Date().toISOString() }); return null;
+      }
+      if (!this.#hasLearningCapacity(state, phase === "study" ? receiptFor(l, task.taskId)!.results.length + 2 + (goal.assessment.length ? 1 : 0) : 1)) {
+        host.apply(l, { type: "fence", runId, status: "exhausted", at: new Date().toISOString() }); return null;
+      }
+      const attempt: ResearchAttempt = { id: researchId(task.taskId, phase), runId, taskId: task.taskId, goalId: goal.id, phase,
+        expectedRevision: state.revision, bindingId, fence: run.fence };
+      const projection: ResearchProjection = phase === "study" ? { phase, question: goal.question, query: goal.query,
+        results: structuredClone(receiptFor(l, task.taskId)!.results), practice: goal.practice.map(q => ({ id: q.id, prompt: q.prompt })) } :
+        { phase, notes: prior[0]!.result!.notes, questions: goal.assessment.map(q => ({ id: q.id, prompt: q.prompt })) };
+      host.apply(l, { type: "reserve", attempt, at: new Date().toISOString() });
+      return { attempt, projection };
+    }, signal);
+  }
+  async completeResearch(attempt: ResearchAttempt, result: LearningResult, at: string, signal: AbortSignal): Promise<ResearchStatus> {
+    assertData(attempt); assertData(result); timestamp(at);
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      const state = this.#readValidated(); this.#researchAwake(state);
+      const host = this.#research(); const l = host.validate();
+      const old = l.attempts.get(attempt.id); if (!old || researchJSON(old.attempt) !== researchJSON(attempt)) throw new Error("Research attempt mismatch");
+      this.#boundResearch(l, attempt.runId, attempt.bindingId, true);
+      if (at > new Date().toISOString() || at < state.updatedAt) throw new Error("Invalid research completion time");
+      if (state.revision !== attempt.expectedRevision) throw new CoreRevisionConflictError();
+      host.apply(l, { type: "complete", id: attempt.id, result, at });
+      const cycles = host.cycles(l, state, l.attempts.get(attempt.id)!);
+      let next = state; for (const cycle of cycles) next = runSubjectCycle(next, cycle, this.#learningAuthority()).state;
+      const snapshot = encodeSnapshot(next);
+      const changed = this.#db.prepare("UPDATE subject SET revision=?, snapshot=? WHERE singleton=1 AND revision=?").run(next.revision, snapshot, state.revision);
+      if (changed.changes !== 1) throw new CoreRevisionConflictError();
+      this.#db.prepare('INSERT INTO events(revision,"eventJSON") VALUES (?,?)').run(next.revision, encodeEvent({ type: "research_phase_completed", attemptId: attempt.id, at }));
+      this.#settleResearch(host, l, attempt.runId);
+      return researchStatusValue(l, attempt.runId);
+    }, signal);
+  }
+  async failResearch(attempt: ResearchAttempt, signal: AbortSignal): Promise<void> {
+    this.#transaction("BEGIN IMMEDIATE", () => {
+      this.#readValidated(); const host = this.#research(); const l = host.validate(); const a = l.attempts.get(attempt.id);
+      if (!a || researchJSON(a.attempt) !== researchJSON(attempt)) throw new Error("Research attempt mismatch");
+      // A stop/disconnect already terminalized pending as unknown; cleanup is safe and never refunds.
+      if (a.status === "unknown") return;
+      host.apply(l, { type: "fail", id: attempt.id, at: new Date().toISOString() }); this.#settleResearch(host, l, attempt.runId);
+    }, signal);
+  }
+  #fenceResearchRuns(status: "paused" | "paused_restart" | "stopped", bindingId?: string, runId?: string): void {
+    const host = this.#research(); const l = host.validate();
+    for (const [key, r] of l.runs) if ((bindingId === undefined || r.bindingId === bindingId) && (runId === undefined || key === runId) &&
+      (r.status === "active" || status === "stopped" && ["paused", "paused_restart"].includes(r.status))) {
+      host.apply(l, { type: "fence", runId: key, status, at: new Date().toISOString() });
+    }
+  }
+  async #fenceResearch(runId: string, bindingId: string, status: "paused" | "stopped", signal: AbortSignal): Promise<ResearchStatus> {
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      this.#readValidated(); const host = this.#research(); this.#boundResearch(host.validate(), runId, bindingId);
+      this.#fenceResearchRuns(status, bindingId, runId); return researchStatusValue(host.validate(), runId);
+    }, signal);
+  }
+  async stopResearch(runId: string, bindingId: string, signal: AbortSignal): Promise<ResearchStatus> { return this.#fenceResearch(runId, bindingId, "stopped", signal); }
+  async pauseResearch(runId: string, bindingId: string, signal: AbortSignal): Promise<ResearchStatus> { return this.#fenceResearch(runId, bindingId, "paused", signal); }
+  async pauseResearchBinding(bindingId: string, signal: AbortSignal): Promise<void> {
+    validRequestId(bindingId);
+    this.#transaction("BEGIN IMMEDIATE", () => { this.#readValidated(); this.#fenceResearchRuns("paused", bindingId); }, signal);
+  }
+  async pauseResearchOnRestart(signal: AbortSignal): Promise<void> {
+    this.#transaction("BEGIN IMMEDIATE", () => { this.#readValidated(); this.#fenceResearchRuns("paused_restart"); }, signal);
+  }
+  async resumeResearch(runId: string, newBindingId: string, signal: AbortSignal): Promise<ResearchStatus> {
+    return this.#transaction("BEGIN IMMEDIATE", () => {
+      this.#researchAwake(this.#readValidated()); const host = this.#research(); const l = host.validate();
+      host.apply(l, { type: "resume", runId, bindingId: newBindingId, at: new Date().toISOString() });
+      this.#settleResearch(host, l, runId); return researchStatusValue(l, runId);
     }, signal);
   }
 
