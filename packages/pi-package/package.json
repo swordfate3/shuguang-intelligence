@@ -1,0 +1,19 @@
+{
+  "name": "@shuguang/pi-package",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": "swordfate3",
+  "type": "module",
+  "description": "曙光Pi资源包：MCP连接管理及skills，不代理聊天或启动本体",
+  "keywords": ["pi-package"],
+  "engines": { "node": ">=24.0.0" },
+  "files": ["src/", "skills/", "LICENSE"],
+  "pi": {
+    "extensions": ["./src/index.ts"],
+    "skills": ["./skills"]
+  },
+  "peerDependencies": { "@earendil-works/pi-coding-agent": ">=1.4.0" },
+  "peerDependenciesMeta": { "@earendil-works/pi-coding-agent": { "optional": true } },
+  "scripts": { "test": "node --test tests/*.test.ts" }
+}
